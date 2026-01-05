@@ -1,0 +1,79 @@
+@import "tailwindcss";
+@plugin "tailwindcss-animate"; /* <--- 1. Import the animation plugin */
+
+/* 2. Enable Dark Mode Class */
+@variant dark (&:where(.dark, .dark *));
+
+/* 3. Theme Configuration */
+@theme {
+  --color-background: var(--bg-primary);
+  --color-surface: var(--bg-surface);
+  --color-border: var(--border-subtle);
+  --color-text-main: var(--text-main);
+  --color-text-secondary: var(--text-muted);
+  --color-accent: var(--accent-black);
+  
+  --font-sans: Inter, sans-serif;
+
+  /* Define the Blob Animation here */
+  --animate-blob: blob 7s infinite;
+  
+  @keyframes blob {
+    0% { transform: translate(0px, 0px) scale(1); }
+    33% { transform: translate(30px, -50px) scale(1.1); }
+    66% { transform: translate(-20px, 20px) scale(0.9); }
+    100% { transform: translate(0px, 0px) scale(1); }
+  }
+}
+
+/* 4. Color Variables */
+@layer base {
+  :root {
+    --bg-primary: #ffffff;
+    --bg-surface: #fafafa;
+    --border-subtle: #e4e4e7;
+    --text-main: #18181b;
+    --text-muted: #71717a;
+    --accent-black: #18181b;
+  }
+
+  .dark {
+    --bg-primary: #09090b;
+    --bg-surface: #18181b;
+    --border-subtle: #27272a;
+    --text-main: #f4f4f5;
+    --text-muted: #a1a1aa;
+    --accent-black: #ffffff;
+  }
+}
+
+/* 5. Custom Utilities */
+@layer utilities {
+  /* Animation Delays (for the blobs) */
+  .animation-delay-2000 {
+    animation-delay: 2s;
+  }
+  .animation-delay-4000 {
+    animation-delay: 4s;
+  }
+}
+
+/* 6. Global Reset */
+body {
+  background-color: var(--bg-primary);
+  color: var(--text-main);
+  font-family: Inter, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  transition-property: color, background-color, border-color;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 300ms;
+}
+
+/* Hide Scrollbar */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
