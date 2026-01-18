@@ -1,6 +1,6 @@
 import React from 'react';
 import { Draggable } from '@hello-pangea/dnd';
-import { Pencil, Trash2, Calendar, AlignLeft, CheckCircle2 } from 'lucide-react';
+import { Pencil, Trash2, Calendar, AlignLeft, CheckCircle2, Tag } from 'lucide-react';
 
 const getPriorityColor = (priority, isDone) => {
   if (isDone) return 'bg-gray-100 text-gray-400 border-gray-200 dark:bg-zinc-800 dark:text-zinc-600 dark:border-zinc-700';
@@ -37,17 +37,17 @@ const TaskCard = ({ task, index, onClickEdit, onClickDelete, isDragDisabled, isD
             border border-gray-200 dark:border-zinc-800 
             p-4 rounded-xl group relative w-full
             
-            /* --- TRANSITIONS: Only enable color transitions when NOT dragging --- */
+            /* --- TRANSITIONS --- */
             ${snapshot.isDragging ? '' : 'transition-colors duration-200'}
 
-            /* --- DRAG STATE STYLES --- */
+            /* --- DRAG STATE (Fixed: No Rotation) --- */
             ${snapshot.isDragging 
-               ? 'shadow-2xl shadow-black/20 ring-2 ring-indigo-500/50 z-50 rotate-2 bg-gray-50 dark:bg-zinc-800' 
-               : 'hover:border-indigo-300 dark:hover:border-zinc-700 hover:shadow-lg dark:hover:shadow-black/20'
+                ? 'shadow-2xl shadow-black/20 ring-2 ring-indigo-500/50 z-50 bg-gray-50 dark:bg-zinc-800' 
+                : 'hover:border-indigo-300 dark:hover:border-zinc-700 hover:shadow-lg dark:hover:shadow-black/20'
             }
             ${isDragDisabled ? 'cursor-default' : 'cursor-grab active:cursor-grabbing'}
 
-            /* --- DONE STATE (JIRA STYLE) --- */
+            /* --- DONE STATE --- */
             ${isDone ? 'opacity-60 bg-gray-50/50 dark:bg-zinc-900/50' : ''}
           `}
         >
@@ -58,10 +58,8 @@ const TaskCard = ({ task, index, onClickEdit, onClickDelete, isDragDisabled, isD
           </div>
           
           <div className="flex gap-2 mb-3">
-             {/* Optional Check Icon */}
              {isDone && <CheckCircle2 size={18} className="text-emerald-500 shrink-0 mt-0.5" />}
              
-             {/* --- TEXT CONTENT WITH LINE-THROUGH --- */}
              <p className={`text-sm font-medium leading-snug break-words pr-6
                 ${isDone 
                    ? 'line-through text-gray-400 dark:text-zinc-600 decoration-gray-400 dark:decoration-zinc-600' 
@@ -73,10 +71,18 @@ const TaskCard = ({ task, index, onClickEdit, onClickDelete, isDragDisabled, isD
           </div>
           
           <div className="flex items-center justify-between mt-3 pt-3 border-t border-gray-100 dark:border-zinc-800/50">
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
+              {/* Priority Badge */}
               <span className={`text-[10px] uppercase font-bold tracking-wider px-1.5 py-0.5 rounded border ${getPriorityColor(task.priority, isDone)}`}>
                 {task.priority}
               </span>
+
+              {/* NEW: Tag Badge */}
+              {task.tag && task.tag !== 'General' && (
+                <span className="text-[10px] font-medium text-zinc-500 dark:text-zinc-400 bg-gray-100 dark:bg-zinc-800 px-1.5 py-0.5 rounded border border-gray-200 dark:border-zinc-700 flex items-center gap-1">
+                   <Tag size={10} /> {task.tag}
+                </span>
+              )}
               
               {task.description && (
                 <div className="text-gray-400 dark:text-zinc-500" title="Has description">
