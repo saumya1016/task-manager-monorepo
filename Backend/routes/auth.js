@@ -34,7 +34,7 @@ router.post('/signup', async (req, res) => {
   }
 });
 
-// --- LOGIN (THIS WAS MISSING) ---
+// --- LOGIN ---
 // @route   POST /api/auth/login
 router.post('/login', async (req, res) => {
   const { email, password } = req.body;
@@ -138,18 +138,63 @@ router.post('/google-sync', async (req, res) => {
       });
     }
 
-
     res.status(200).json({
       _id: user._id,
       name: user.name,
       email: user.email,
       avatar: user.avatar,
-      token: generateToken(user._id), // This token allows them to see THEIR tasks
+      token: generateToken(user._id),
     });
   } catch (error) {
     res.status(500).json({ message: "Google Sync failed", error: error.message });
   }
 });
 
+// --- INVITE USER (NEW) ---
+// @route   POST /api/auth/invite
+router.post('/invite', async (req, res) => {
+  const { email } = req.body;
+
+  try {
+    // 1. Search for user
+    const existingUser = await User.findOne({ email });
+
+    // 2. CASE A: User ALREADY exists
+    if (existingUser) {
+      return res.status(200).json({
+        success: true,
+        message: "User found",
+        user: existingUser, // Send back user info so frontend can add them to board
+        isExistingUser: true
+      });
+    }
+
+    // 3. CASE B: User does NOT exist (Send Invite Email)
+    const clientUrl = process.env.CLIENT_URL; 
+    const inviteLink = `${clientUrl}/register?email=${email}`;
+    
+    const html = `
+      <h3>You have been invited to TaskFlow!</h3>
+      <p>Someone wants to collaborate with you on a board.</p>
+      <a href="${inviteLink}" style="padding: 10px 20px; background-color: #6366f1; color: white; text-decoration: none; border-radius: 5px;">Join Now</a>
+    `;
+
+    await sendEmail({
+      to: email,
+      subject: "Invitation to join TaskFlow",
+      html: html
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: "Invite email sent successfully",
+      isExistingUser: false
+    });
+
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Server error during invite" });
+  }
+});
 
 module.exports = router;
