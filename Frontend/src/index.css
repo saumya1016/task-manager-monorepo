@@ -69,7 +69,7 @@ body {
   transition-duration: 300ms;
 }
 
-/* Hide Scrollbar */
+
 .no-scrollbar::-webkit-scrollbar {
   display: none;
 }
