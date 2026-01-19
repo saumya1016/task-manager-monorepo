@@ -15,7 +15,7 @@ const sendEmail = async ({ to, subject, html }) => {
     subject: subject,
     html: html,
   };
-
+    console.log("Debugging Email:", process.env.EMAIL_USER ? "User is set" : "User is MISSING", process.env.EMAIL_PASS ? "Pass is set" : "Pass is MISSING");
   await transporter.sendMail(mailOptions);
 };
 

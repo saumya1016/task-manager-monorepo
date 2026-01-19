@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { X, ChevronDown, MessageSquare, Clock, Send, AlignLeft } from 'lucide-react';
+import { X, ChevronDown, Clock, Send, AlignLeft, User, Check } from 'lucide-react';
 
-const EditTaskModal = ({ task, onClose, onSave }) => {
+const EditTaskModal = ({ task, onClose, onSave, members }) => { // <--- Added 'members' prop
   const [activeTab, setActiveTab] = useState('details'); // 'details' or 'comments'
   
   // Form State
@@ -9,6 +9,7 @@ const EditTaskModal = ({ task, onClose, onSave }) => {
   const [description, setDescription] = useState(task.description || ''); 
   const [priority, setPriority] = useState(task.priority || 'Medium');
   const [deadline, setDeadline] = useState(task.deadline ? task.deadline.split('T')[0] : '');
+  const [assignedTo, setAssignedTo] = useState(task.assignedTo?._id || task.assignedTo || ''); // <--- Added State
 
   // Comments State (Mock Data)
   const [comments, setComments] = useState([
@@ -18,7 +19,8 @@ const EditTaskModal = ({ task, onClose, onSave }) => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    onSave({ id: task.id, content, description, priority, deadline }); 
+    // Pass 'assignedTo' back to the parent
+    onSave({ id: task.id, content, description, priority, deadline, assignedTo }); 
   };
 
   const handleAddComment = (e) => {
@@ -37,10 +39,9 @@ const EditTaskModal = ({ task, onClose, onSave }) => {
   };
 
   return (
-    // Backdrop
     <div className="fixed inset-0 bg-black/20 dark:bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
       
-      {/* Modal Container - Fixed height for mobile scrolling */}
+      {/* Modal Container */}
       <div className="bg-white dark:bg-zinc-900 rounded-xl shadow-2xl border border-gray-200 dark:border-zinc-800 w-full max-w-lg flex flex-col max-h-[90dvh] animate-in zoom-in duration-200 overflow-hidden">
         
         {/* --- Header & Tabs --- */}
@@ -93,6 +94,27 @@ const EditTaskModal = ({ task, onClose, onSave }) => {
                       onChange={(e) => setDescription(e.target.value)} 
                     />
                     <AlignLeft size={16} className="absolute left-3 top-3 text-zinc-400" />
+                </div>
+              </div>
+
+              {/* --- NEW: ASSIGN TO MEMBER --- */}
+              <div>
+                <label className="block text-xs font-medium text-zinc-500 dark:text-zinc-400 mb-1.5">Assign To</label>
+                <div className="relative">
+                    <select 
+                        value={assignedTo} 
+                        onChange={(e) => setAssignedTo(e.target.value)} 
+                        className="w-full appearance-none bg-gray-50 dark:bg-zinc-950/50 border border-gray-200 dark:border-zinc-800 rounded-lg pl-10 pr-4 py-3 text-sm text-zinc-900 dark:text-white outline-none cursor-pointer focus:ring-2 focus:ring-indigo-500/50"
+                    >
+                        <option value="">Unassigned</option>
+                        {members && members.map((m) => (
+                            <option key={m._id} value={m._id}>
+                                {m.name} ({m.email})
+                            </option>
+                        ))}
+                    </select>
+                    <User size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
+                    <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 pointer-events-none" />
                 </div>
               </div>
 
