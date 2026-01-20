@@ -1,84 +1,80 @@
 import React, { useState } from 'react';
-import api from '../utils/axios'; // Ensure this points to your configured axios
+import { X, Copy, Check, Link } from 'lucide-react';
+import { toast } from 'sonner';
 
-const InviteUserModal = ({ isOpen, onClose, boardId, onInviteSuccess }) => {
-  const [email, setEmail] = useState('');
-  const [status, setStatus] = useState('idle'); // idle, loading, success, error
-  const [message, setMessage] = useState('');
+const InviteUserModal = ({ isOpen, onClose, boardId }) => {
+  const [copied, setCopied] = useState(false);
 
   if (!isOpen) return null;
 
-  const handleInvite = async (e) => {
-    e.preventDefault();
-    setStatus('loading');
-    setMessage('');
+  // Generate the join link dynamically based on the current domain and board ID
+  // Example output: https://your-app.vercel.app/join/65a123...
+  const joinLink = `${window.location.origin}/join/${boardId}`;
 
+  const handleCopy = async () => {
     try {
-      // Step 1: Check if user exists or send email
-      const res = await api.post('/auth/invite', { email });
-
-      if (res.data.isExistingUser) {
-        // Step 2: If they exist, add them to the board immediately
-        const userId = res.data.user._id;
-        await api.post(`/boards/${boardId}/add-member`, { userId });
-        setMessage(`User ${res.data.user.name} added to board!`);
-      } else {
-        setMessage('Invitation email sent successfully!');
-      }
-
-      setStatus('success');
-      onInviteSuccess(); // Refresh the board data
-      setTimeout(() => {
-        onClose();
-        setStatus('idle');
-        setEmail('');
-        setMessage('');
-      }, 2000);
+      await navigator.clipboard.writeText(joinLink);
+      setCopied(true);
+      toast.success('Link copied to clipboard!');
       
-    } catch (error) {
-      setStatus('error');
-      setMessage(error.response?.data?.message || 'Something went wrong');
+      // Reset the "Copied" state after 2 seconds
+      setTimeout(() => setCopied(false), 2000);
+    } catch (err) {
+      toast.error('Failed to copy link.');
     }
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
-      <div className="bg-white p-6 rounded-lg shadow-xl w-96">
-        <h2 className="text-xl font-bold mb-4">Invite Member</h2>
+    // Backdrop with blur effect and animation
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-in fade-in duration-200">
+      
+      {/* Modal Container */}
+      <div className="bg-white dark:bg-zinc-900 rounded-xl border border-gray-200 dark:border-zinc-800 w-full max-w-md p-6 shadow-2xl relative">
         
-        <form onSubmit={handleInvite}>
-          <input
-            type="email"
-            placeholder="Enter friend's email"
-            className="w-full p-2 border border-gray-300 rounded mb-4"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-          />
-          
-          {message && (
-            <div className={`p-2 mb-4 text-sm rounded ${status === 'success' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
-              {message}
+        {/* Close Button (Top Right) */}
+        <button 
+            onClick={onClose} 
+            className="absolute top-4 right-4 text-zinc-400 hover:text-zinc-900 dark:hover:text-white transition-colors"
+        >
+            <X size={20} />
+        </button>
+        
+        {/* Header Section */}
+        <div className="flex items-center gap-3 mb-2">
+            <div className="p-2 bg-indigo-100 dark:bg-indigo-900/30 rounded-lg text-indigo-600 dark:text-indigo-400">
+                <Link size={20} />
             </div>
-          )}
-
-          <div className="flex justify-end gap-2">
+            <h2 className="text-xl font-bold text-zinc-900 dark:text-white">Invite to Board</h2>
+        </div>
+        
+        {/* Description */}
+        <p className="text-sm text-zinc-500 dark:text-zinc-400 mb-6">
+            Share this link with your team. Anyone with the link can join this board instantly.
+        </p>
+        
+        {/* Copy Link Section */}
+        <div className="flex gap-2">
+            {/* Read-only Input showing the link */}
+            <input 
+                readOnly 
+                value={joinLink} 
+                className="w-full bg-gray-50 dark:bg-zinc-950 border border-gray-200 dark:border-zinc-800 rounded-lg px-3 py-2 text-sm text-zinc-600 dark:text-zinc-300 outline-none font-mono select-all"
+            />
+            
+            {/* Copy Button with feedback state */}
             <button 
-              type="button" 
-              onClick={onClose}
-              className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded"
+                onClick={handleCopy}
+                disabled={copied}
+                className={`px-4 py-2 rounded-lg font-medium transition-all flex items-center gap-2 min-w-[110px] justify-center text-white
+                    ${copied 
+                        ? 'bg-green-600' 
+                        : 'bg-indigo-600 hover:bg-indigo-700 hover:shadow-lg hover:shadow-indigo-500/20'
+                    }`}
             >
-              Cancel
+                {copied ? <Check size={16} className="animate-in zoom-in duration-200" /> : <Copy size={16} />}
+                <span>{copied ? 'Copied!' : 'Copy'}</span>
             </button>
-            <button 
-              type="submit" 
-              disabled={status === 'loading'}
-              className="px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700 disabled:opacity-50"
-            >
-              {status === 'loading' ? 'Inviting...' : 'Send Invite'}
-            </button>
-          </div>
-        </form>
+        </div>
       </div>
     </div>
   );

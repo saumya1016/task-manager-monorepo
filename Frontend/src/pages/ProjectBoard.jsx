@@ -1,24 +1,24 @@
 import React, { useState, useEffect } from 'react';
 import { DragDropContext } from '@hello-pangea/dnd';
-import { Plus, Search, UserPlus, X, Loader2, AlertTriangle, Sun, Moon, Layout, Filter, Tag } from 'lucide-react';
+import { Plus, Search, UserPlus, X, Loader2, AlertTriangle, Sun, Moon, Layout } from 'lucide-react';
 import axios from '../utils/axios';
-import { useNavigate, useParams } from 'react-router-dom'; // Added useParams
+import { useNavigate, useParams } from 'react-router-dom';
 import { Toaster, toast } from 'sonner';
 import confetti from 'canvas-confetti';
 
 // Components
 import BoardColumn from '../components/BoardColumn';
 import EditTaskModal from '../components/EditTaskModal';
-import InviteUserModal from '../components/InviteUserModal'; // NEW IMPORT
+import InviteUserModal from '../components/InviteUserModal';
 
 const ProjectBoard = () => {
   const navigate = useNavigate();
-  const { id: boardId } = useParams(); // Get Board ID from URL
+  const { id: boardId } = useParams(); 
   const [currentUser, setCurrentUser] = useState(null);
   const [loading, setLoading] = useState(true);
   
   // Board Data State
-  const [boardData, setBoardData] = useState(null); // Stores board name, members, etc.
+  const [boardData, setBoardData] = useState(null); 
 
   // Theme State
   const [isDarkMode, setIsDarkMode] = useState(() => localStorage.getItem('theme') === 'dark' || true);
@@ -58,7 +58,7 @@ const ProjectBoard = () => {
     const userInfo = JSON.parse(localStorage.getItem('userInfo'));
     if (!userInfo) { navigate('/login'); return; }
     setCurrentUser(userInfo);
-    fetchBoardData(); // Fetch Board + Tasks
+    fetchBoardData(); 
   }, [boardId, navigate]);
 
   const isViewer = currentUser?.role === 'viewer'; 
@@ -67,14 +67,12 @@ const ProjectBoard = () => {
   const fetchBoardData = async () => {
     try {
       // 1. Fetch Board Details (Name, Members)
-      // Note: You need to create this GET /api/boards/:id route in backend if not exists
-      // If not, we can just fetch tasks, but we won't show members.
       if (boardId) {
           const boardRes = await axios.get(`/boards/${boardId}`);
           setBoardData(boardRes.data);
       }
 
-      // 2. Fetch Tasks (Assuming tasks are filtered by board on backend, or we fetch all)
+      // 2. Fetch Tasks 
       const { data } = await axios.get('/tasks', { params: { boardId } });
       
       const newTasks = {};
@@ -143,7 +141,7 @@ const ProjectBoard = () => {
         tag: newTag.trim() || 'General', 
         priority: newPriority, 
         deadline: newDeadline,
-        boardId: boardId // Associate task with this board
+        boardId: boardId 
       });
       
       const newTask = { id: data._id, ...data };
@@ -279,13 +277,13 @@ const ProjectBoard = () => {
 
       {/* --- MODALS --- */}
       
-      {/* 1. Edit Task Modal (Now receives members!) */}
+      {/* 1. Edit Task Modal */}
       {editingTask && (
         <EditTaskModal 
             task={editingTask} 
             onClose={() => setEditingTask(null)} 
             onSave={handleUpdateTask} 
-            members={boardData?.members || []} // Pass members here
+            members={boardData?.members || []} // Pass members
         />
       )}
       
@@ -302,12 +300,11 @@ const ProjectBoard = () => {
         </div>
       )}
 
-      {/* 3. New Smart Invite Modal */}
+      {/* 3. New Copy Link Modal (Cleaned up props) */}
       <InviteUserModal 
         isOpen={isInviteOpen} 
         onClose={() => setIsInviteOpen(false)} 
-        boardId={boardId} // Pass the ID
-        onInviteSuccess={fetchBoardData} // Refresh to show new avatar
+        boardId={boardId} 
       />
     </div>
   );
