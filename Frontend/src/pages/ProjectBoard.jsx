@@ -1,17 +1,19 @@
 import React, { useState, useEffect } from 'react';
-import { DragDropContext } from '@hello-pangea/dnd'; // Droppable removed (it's in BoardColumn now)
-import { Plus, Search, UserPlus, X, Loader2, AlertTriangle, ChevronDown, Layout, Sun, Moon, Shield, Filter, Tag } from 'lucide-react';
+import { DragDropContext } from '@hello-pangea/dnd'; 
+import { Plus, Search, UserPlus, X, Loader2, AlertTriangle, Layout, Sun, Moon, Filter, Tag } from 'lucide-react';
 import axios from '../utils/axios';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom'; // <--- Added useParams
 import { Toaster, toast } from 'sonner';
 import confetti from 'canvas-confetti';
 
 // Import Components
-import BoardColumn from '../components/BoardColumn'; // <--- NEW IMPORT
+import BoardColumn from '../components/BoardColumn';
 import EditTaskModal from '../components/EditTaskModal';
+import InviteUserModal from '../components/InviteUserModal'; // <--- IMPORT THE NEW MODAL
 
 const ProjectBoard = () => {
   const navigate = useNavigate();
+  const { id: boardId } = useParams(); // <--- Get ID for the invite link
   const [currentUser, setCurrentUser] = useState(null);
   const [loading, setLoading] = useState(true);
   
@@ -40,11 +42,7 @@ const ProjectBoard = () => {
   const [editingTask, setEditingTask] = useState(null);
   const [deleteData, setDeleteData] = useState(null);
   
-  // Inputs
-  const [inviteEmail, setInviteEmail] = useState('');
-  const [inviteRole, setInviteRole] = useState('member'); 
-  const [inviteLoading, setInviteLoading] = useState(false);
-  
+  // Inputs for New Task
   const [isCreating, setIsCreating] = useState(false);
   const [newTaskContent, setNewTaskContent] = useState('');
   const [newPriority, setNewPriority] = useState('Medium');
@@ -70,7 +68,8 @@ const ProjectBoard = () => {
   // --- Logic Handlers (Fetch, Drag, CRUD) ---
   const fetchTasks = async () => {
     try {
-      const { data } = await axios.get('/tasks');
+      // Pass boardId if your backend supports filtering by board
+      const { data } = await axios.get('/tasks', { params: { boardId } });
       const newTasks = {};
       const newColumns = { 
         'col-1': { id: 'col-1', title: 'Assigned', taskIds: [] }, 
@@ -126,7 +125,8 @@ const ProjectBoard = () => {
     if(!newTaskContent.trim()) return;
     try {
       const { data } = await axios.post('/tasks', { 
-        content: newTaskContent, status: 'col-1', tag: newTag.trim() || 'General', priority: newPriority, deadline: newDeadline 
+        content: newTaskContent, status: 'col-1', tag: newTag.trim() || 'General', priority: newPriority, deadline: newDeadline,
+        boardId // Link task to this board
       });
       const newTask = { id: data._id, ...data };
       const newCol = { ...columns['col-1'], taskIds: [...columns['col-1'].taskIds, data._id] };
@@ -158,13 +158,7 @@ const ProjectBoard = () => {
     } catch (error) { toast.error("Failed to update task"); }
   };
 
-  const handleInvite = async (e) => {
-    e.preventDefault(); setInviteLoading(true);
-    try { 
-      await axios.post('/auth/invite', { email: inviteEmail, role: inviteRole }); 
-      toast.success('Invitation sent'); setInviteEmail(''); setIsInviteOpen(false); 
-    } catch (error) { toast.error('Failed to send invite'); } finally { setInviteLoading(false); }
-  };
+  // NOTE: handleInvite logic Removed (Handled by InviteUserModal now)
 
   if (loading) return <div className="h-screen bg-white dark:bg-zinc-950 flex items-center justify-center"><Loader2 className="animate-spin text-indigo-500" /></div>;
 
@@ -189,9 +183,9 @@ const ProjectBoard = () => {
         
         <div className="ml-auto flex items-center gap-6">
           
-          {/* --- SEARCH & FILTER BAR (FIXED) --- */}
+          {/* --- SEARCH & FILTER BAR --- */}
           <div className="flex items-center gap-1 bg-gray-100 dark:bg-zinc-900 p-1.5 rounded-full border border-transparent dark:border-zinc-800 focus-within:bg-white dark:focus-within:bg-black focus-within:ring-2 focus-within:ring-indigo-500/20 transition-all shadow-sm">
-             
+              
              {/* Search Input */}
              <div className="relative group pl-3 flex items-center gap-2">
                <Search className="text-zinc-400 dark:text-zinc-500 group-focus-within:text-indigo-500 transition-colors" size={16} />
@@ -204,7 +198,6 @@ const ProjectBoard = () => {
                />
              </div>
 
-             {/* Divider */}
              <div className="h-5 w-[1px] bg-gray-300 dark:bg-zinc-700 mx-1"></div>
 
              {/* Filter Dropdown */}
@@ -214,7 +207,6 @@ const ProjectBoard = () => {
                   onChange={(e) => setPriorityFilter(e.target.value)} 
                   className="bg-transparent border-none text-xs font-semibold text-zinc-600 dark:text-zinc-300 outline-none appearance-none cursor-pointer pl-2 pr-7 py-1 hover:text-zinc-900 dark:hover:text-white transition-colors"
                 >
-                  {/* Options with explicit dark mode styling */}
                   <option value="All" className="bg-white dark:bg-zinc-900 text-zinc-900 dark:text-white">All Priority</option>
                   <option value="Low" className="bg-white dark:bg-zinc-900 text-zinc-900 dark:text-white">Low</option>
                   <option value="Medium" className="bg-white dark:bg-zinc-900 text-zinc-900 dark:text-white">Medium</option>
@@ -306,21 +298,13 @@ const ProjectBoard = () => {
         </div>
       )}
 
-      {/* Invite Modal */}
-      {isInviteOpen && (
-        <div className="fixed inset-0 bg-black/20 dark:bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-            <div className="bg-white dark:bg-zinc-900 rounded-xl border border-gray-200 dark:border-zinc-800 w-full max-w-md p-6 shadow-2xl relative">
-                <button onClick={() => setIsInviteOpen(false)} className="absolute top-4 right-4 text-zinc-400 hover:text-zinc-900"><X size={20} /></button>
-                <h2 className="text-xl font-bold mb-1">Invite Members</h2>
-                <p className="text-sm text-zinc-500 mb-6">Give your team access.</p>
-                <form onSubmit={handleInvite} className="space-y-4">
-                    <div><label className="block text-xs font-medium mb-1.5 ml-1">Email</label><input type="email" value={inviteEmail} onChange={(e) => setInviteEmail(e.target.value)} className="w-full px-4 py-3 bg-gray-50 dark:bg-zinc-950/50 border border-gray-200 dark:border-zinc-800 rounded-xl text-sm" required /></div>
-                    <div><label className="block text-xs font-medium mb-1.5 ml-1">Role</label><select value={inviteRole} onChange={(e) => setInviteRole(e.target.value)} className="w-full px-4 py-3 bg-gray-50 dark:bg-zinc-950/50 border border-gray-200 dark:border-zinc-800 rounded-xl text-sm"><option value="member">Member</option><option value="admin">Admin</option><option value="viewer">Viewer</option></select></div>
-                    <div className="mt-6 flex justify-end"><button type="submit" disabled={inviteLoading} className="w-full bg-zinc-900 dark:bg-white text-white dark:text-black px-4 py-3 rounded-xl text-sm font-bold">{inviteLoading ? 'Sending...' : 'Send Invite'}</button></div>
-                </form>
-            </div>
-        </div>
-      )}
+      {/* --- NEW INVITE MODAL (EmailJS) --- */}
+      {/* This uses the new component instead of the manual form */}
+      <InviteUserModal 
+        isOpen={isInviteOpen} 
+        onClose={() => setIsInviteOpen(false)} 
+        boardId={boardId} 
+      />
     </div>
   );
 };
