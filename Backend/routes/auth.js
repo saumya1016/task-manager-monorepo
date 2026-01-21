@@ -4,7 +4,9 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
 const User = require('../models/User');
-const sendEmail = require('../utils/sendEmail');
+
+// ❌ REMOVED: const sendEmail = require('../utils/sendEmail'); 
+// (We removed this import because the file is deleted)
 
 const generateToken = (id) => {
   return jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn: '30d' });
@@ -72,23 +74,18 @@ router.post('/forgot-password', async (req, res) => {
     user.resetPasswordExpires = Date.now() + 3600000; // 1 hour
     await user.save();
 
-    const resetUrl = `${process.env.CLIENT_URL}/reset-password/${resetToken}`;
+    // ⚠️ NOTE: Backend Email Sending is DISABLED because sendEmail.js was deleted.
+    // If you need password resets, you must implement EmailJS on the frontend for this too.
+    
+    /* const resetUrl = `${process.env.CLIENT_URL}/reset-password/${resetToken}`;
+    const message = `...html...`;
+    
+    await sendEmail({ ... }); 
+    */
 
-    const message = `
-      <h1>Password Reset Request</h1>
-      <p>Click the link below to reset your password. It expires in 1 hour.</p>
-      <a href="${resetUrl}">${resetUrl}</a>
-    `;
-
-    await sendEmail({
-      to: user.email,
-      subject: 'TaskFlow Password Reset',
-      html: message,
-    });
-
-    res.status(200).json({ message: "Password reset link sent to email." });
+    res.status(200).json({ message: "Password reset logic needs Frontend implementation." });
   } catch (error) {
-    res.status(500).json({ message: "Email could not be sent" });
+    res.status(500).json({ message: "Server error" });
   }
 });
 
@@ -150,51 +147,7 @@ router.post('/google-sync', async (req, res) => {
   }
 });
 
-// --- INVITE USER (NEW) ---
-// @route   POST /api/auth/invite
-router.post('/invite', async (req, res) => {
-  const { email } = req.body;
-
-  try {
-    // 1. Search for user
-    const existingUser = await User.findOne({ email });
-
-    // 2. CASE A: User ALREADY exists
-    if (existingUser) {
-      return res.status(200).json({
-        success: true,
-        message: "User found",
-        user: existingUser, // Send back user info so frontend can add them to board
-        isExistingUser: true
-      });
-    }
-
-    // 3. CASE B: User does NOT exist (Send Invite Email)
-    const clientUrl = process.env.CLIENT_URL; 
-    const inviteLink = `${clientUrl}/register?email=${email}`;
-    
-    const html = `
-      <h3>You have been invited to TaskFlow!</h3>
-      <p>Someone wants to collaborate with you on a board.</p>
-      <a href="${inviteLink}" style="padding: 10px 20px; background-color: #6366f1; color: white; text-decoration: none; border-radius: 5px;">Join Now</a>
-    `;
-
-    await sendEmail({
-      to: email,
-      subject: "Invitation to join TaskFlow",
-      html: html
-    });
-
-    return res.status(200).json({
-      success: true,
-      message: "Invite email sent successfully",
-      isExistingUser: false
-    });
-
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: "Server error during invite" });
-  }
-});
+// ❌ REMOVED: router.post('/invite') 
+// (This is now handled entirely by your React Frontend via EmailJS)
 
 module.exports = router;
