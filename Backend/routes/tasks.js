@@ -1,13 +1,80 @@
 const express = require('express');
 const router = express.Router();
 const Task = require('../models/Task');
+const Board = require('../models/Board'); 
 const { protect } = require('../middleware/authMiddleware');
 
-// @route   GET /api/tasks
+// ---------------------------------------------------------
+// ✅ ROUTE: MY TASKS (Must be defined before :id routes)
+// ---------------------------------------------------------
+// @route   GET /api/tasks/my-tasks
+// @desc    Get all tasks assigned to the logged-in user
+router.get('/my-tasks', protect, async (req, res) => {
+  try {
+    const tasks = await Task.find({ assignedTo: req.user.id })
+      .populate('board', 'title') 
+      .sort({ deadline: 1 }); 
+
+    const formattedTasks = tasks.map(task => ({
+      _id: task._id,
+      title: task.content,
+      priority: task.priority,
+      status: task.status === 'col-4' ? 'Completed' : 'Pending',
+      deadline: task.deadline,
+      boardTitle: task.board ? task.board.title : 'Unknown Board',
+      boardId: task.board ? task.board._id : null
+    }));
+
+    res.json(formattedTasks);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// @route   GET /api/tasks/stats
+// @desc    Get task statistics (Global or Board-specific)
+router.get('/stats', protect, async (req, res) => {
+  try {
+    const { boardId } = req.query; 
+    let query = {};
+
+    if (boardId) {
+        query = { board: boardId };
+    } else {
+        query = { assignedTo: req.user.id };
+    }
+
+    const completed = await Task.countDocuments({ ...query, status: 'col-4' });
+    const inProgress = await Task.countDocuments({ ...query, status: 'col-2' });
+    const totalAssigned = await Task.countDocuments(query);
+    
+    const efficiency = totalAssigned === 0 ? 0 : Math.round((completed / totalAssigned) * 100);
+
+    res.status(200).json({ completed, inProgress, efficiency: `${efficiency}%` });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// @route   GET /api/tasks (Get tasks for a specific board)
 router.get('/', protect, async (req, res) => {
   try {
-    // FIX: Filter by the logged-in user's ID
-    const tasks = await Task.find({ user: req.user.id }).sort({ position: 1 });
+    const { boardId } = req.query;
+
+    if (!boardId) return res.status(400).json({ message: 'Board ID is required' });
+
+    // Security: Check permissions
+    const board = await Board.findById(boardId);
+    if (!board) return res.status(404).json({ message: 'Board not found' });
+
+    const isOwner = board.owner.toString() === req.user.id;
+    const isMember = board.members.some(m => m.user.toString() === req.user.id);
+
+    if (!isOwner && !isMember) {
+        return res.status(401).json({ message: 'Not authorized to view this board' });
+    }
+
+    const tasks = await Task.find({ board: boardId }).sort({ position: 1 });
     res.status(200).json(tasks);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -17,16 +84,14 @@ router.get('/', protect, async (req, res) => {
 // @route   POST /api/tasks
 router.post('/', protect, async (req, res) => {
   try {
-    const { content, description, tag, priority, status, deadline } = req.body;
+    const { content, description, tag, priority, status, deadline, boardId } = req.body;
 
-    // FIX: Only count tasks belonging to THIS user
-    const taskCount = await Task.countDocuments({ 
-      user: req.user.id, 
-      status: status || 'col-1' 
-    });
+    if (!boardId) return res.status(400).json({ message: "Board ID required" });
+
+    const taskCount = await Task.countDocuments({ board: boardId, status: status || 'col-1' });
 
     const task = await Task.create({
-      user: req.user.id, // FIX: Save the owner's ID
+      board: boardId,
       content,
       description: description || '',
       tag: tag || 'General',
@@ -34,6 +99,7 @@ router.post('/', protect, async (req, res) => {
       status: status || 'col-1',
       deadline,
       assignee: req.user.name, 
+      assignedTo: req.user.id, // Defaults to creator
       position: taskCount,
     });
 
@@ -43,50 +109,22 @@ router.post('/', protect, async (req, res) => {
   }
 });
 
-// @route   GET /api/tasks/stats
-router.get('/stats', protect, async (req, res) => {
-  try {
-    const userId = req.user.id; // FIX: Use unique ID, not name/avatar
-
-    const completed = await Task.countDocuments({ 
-      user: userId, 
-      status: 'col-4' 
-    });
-
-    const inProgress = await Task.countDocuments({ 
-      user: userId, 
-      status: 'col-2' 
-    });
-
-    const totalAssigned = await Task.countDocuments({ user: userId });
-    const efficiency = totalAssigned === 0 ? 0 : Math.round((completed / totalAssigned) * 100);
-
-    res.status(200).json({ completed, inProgress, efficiency: `${efficiency}%` });
-  } catch (error) {
-    res.status(500).json({ message: error.message });
-  }
-});
-
+// ---------------------------------------------------------
+// ✅ FIXED PUT ROUTE (This fixes your bug)
+// ---------------------------------------------------------
 // @route   PUT /api/tasks/:id
 router.put('/:id', protect, async (req, res) => {
   try {
-    const task = await Task.findById(req.params.id);
+    // Using findByIdAndUpdate is cleaner and handles ALL fields (including assignedTo).
+    // { new: true } ensures we return the UPDATED document, not the old one.
+    const updatedTask = await Task.findByIdAndUpdate(
+      req.params.id,
+      req.body, 
+      { new: true } 
+    );
 
-    if (!task) return res.status(404).json({ message: 'Task not found' });
+    if (!updatedTask) return res.status(404).json({ message: 'Task not found' });
 
-    // FIX: Security Check - Ensure user owns this task
-    if (task.user.toString() !== req.user.id) {
-      return res.status(401).json({ message: 'Not authorized' });
-    }
-
-    task.status = req.body.status || task.status;
-    task.content = req.body.content || task.content;
-    task.priority = req.body.priority || task.priority;
-    if (req.body.description !== undefined) task.description = req.body.description;
-    if (req.body.deadline !== undefined) task.deadline = req.body.deadline;
-    if (req.body.position !== undefined) task.position = req.body.position;
-
-    const updatedTask = await task.save();
     res.status(200).json(updatedTask);
   } catch (error) {
     res.status(400).json({ message: error.message });
@@ -98,11 +136,6 @@ router.delete('/:id', protect, async (req, res) => {
   try {
     const task = await Task.findById(req.params.id);
     if (!task) return res.status(404).json({ message: 'Task not found' });
-
-    // FIX: Security Check - Ensure user owns this task
-    if (task.user.toString() !== req.user.id) {
-      return res.status(401).json({ message: 'Not authorized' });
-    }
 
     await task.deleteOne();
     res.status(200).json({ id: req.params.id });

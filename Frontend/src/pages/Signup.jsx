@@ -19,8 +19,12 @@ const Signup = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
+  // 1. ✅ Get the "Return Ticket" (Redirect Path)
+  const params = new URLSearchParams(location.search);
+  const redirectPath = params.get('redirect') || '/dashboard';
+
   useEffect(() => {
-    const params = new URLSearchParams(location.search);
+    // Pre-fill email if invited
     const invitedEmail = params.get('email');
     if (invitedEmail) setEmail(invitedEmail);
   }, [location]);
@@ -39,7 +43,10 @@ const Signup = () => {
       });
 
       localStorage.setItem('userInfo', JSON.stringify(data));
-      navigate('/project');
+      
+      // ✅ FIX: Navigate to Redirect Path (Board) or Dashboard
+      navigate(redirectPath);
+      
       toast.success(`Welcome ${fbUser.displayName}!`);
     } catch (err) {
       console.error(err);
@@ -53,15 +60,20 @@ const Signup = () => {
     setError('');
     setLoading(true);
     try {
-      const { data } = await axios.post('/auth/register', { name, email, password });
+      const { data } = await axios.post('/auth/signup', { name, email, password }); 
+      
       localStorage.setItem('userInfo', JSON.stringify(data));
-      navigate('/project');
+      
+      // ✅ FIX: Navigate to Redirect Path (Board) or Dashboard
+      navigate(redirectPath);
+      
     } catch (err) {
       setError(err.response?.data?.message || 'Registration failed');
     } finally {
       setLoading(false);
     }
   };
+
   return (
     <div className="min-h-[100dvh] bg-zinc-950 text-white font-sans relative overflow-x-hidden flex flex-col justify-center sm:py-12">
       <div className="fixed inset-0 z-0 pointer-events-none">
@@ -159,7 +171,8 @@ const Signup = () => {
             </form>
 
             <p className="mt-8 text-center text-xs text-zinc-500">
-              Already have an account? <Link to="/login" className="text-white font-medium hover:underline decoration-zinc-500 underline-offset-4 p-2">Log in</Link>
+              {/* ✅ FIX: Pass the redirect path to Login as well */}
+              Already have an account? <Link to={`/login?redirect=${encodeURIComponent(redirectPath)}`} className="text-white font-medium hover:underline decoration-zinc-500 underline-offset-4 p-2">Log in</Link>
             </p>
         </div>
       </div>

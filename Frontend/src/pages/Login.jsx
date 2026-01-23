@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom'; // ✅ Added useLocation
 import { Eye, EyeOff, Loader2, ArrowLeft, Layout } from 'lucide-react';
 import axios from '../utils/axios';
 import { toast } from 'sonner';
@@ -14,7 +14,14 @@ const Login = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  
   const navigate = useNavigate();
+  const location = useLocation(); // ✅ Hook to read URL params
+
+  // 1. Get the "Return Ticket" (Redirect Path)
+  // If URL is /login?redirect=/join/123, then redirectPath will be /join/123
+  const params = new URLSearchParams(location.search);
+  const redirectPath = params.get('redirect') || '/dashboard';
 
   // --- HANDLE FORGOT PASSWORD ---
   const handleForgotPassword = async () => {
@@ -46,7 +53,10 @@ const Login = () => {
       });
 
       localStorage.setItem('userInfo', JSON.stringify(data));
-      navigate('/project');
+      
+      // ✅ FIX: Navigate to Redirect Path (Board) or Dashboard
+      navigate(redirectPath);
+      
       toast.success(`Welcome back, ${fbUser.displayName}!`);
     } catch (err) {
       console.error("Google Auth Error:", err);
@@ -62,7 +72,10 @@ const Login = () => {
     try {
       const { data } = await axios.post('/auth/login', { email, password });
       localStorage.setItem('userInfo', JSON.stringify(data));
-      navigate('/project');
+      
+      // ✅ FIX: Navigate to Redirect Path (Board) or Dashboard
+      navigate(redirectPath);
+      
       toast.success("Logged in successfully!");
     } catch (err) {
       setError(err.response?.data?.message || 'Login failed');
@@ -162,7 +175,8 @@ const Login = () => {
             </form>
 
             <p className="mt-8 text-center text-xs text-zinc-500">
-              Don't have an account? <Link to="/signup" className="text-white font-medium hover:underline decoration-zinc-500 underline-offset-4">Create one</Link>
+              {/* ✅ FIX: Pass the redirect path to Signup as well */}
+              Don't have an account? <Link to={`/signup?redirect=${encodeURIComponent(redirectPath)}`} className="text-white font-medium hover:underline decoration-zinc-500 underline-offset-4">Create one</Link>
             </p>
         </div>
       </div>

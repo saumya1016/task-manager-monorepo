@@ -24,8 +24,16 @@ const isOverdue = (dateString) => {
 };
 
 const TaskCard = ({ task, index, onClickEdit, onClickDelete, isDragDisabled, isDone }) => {
+  // Debugging: Uncomment this line to see if drag is disabled in your console
+  // console.log(`Task ${task.content} Drag Disabled:`, isDragDisabled);
+
   return (
-    <Draggable key={task.id} draggableId={task.id} index={index} isDragDisabled={isDragDisabled}>
+    <Draggable 
+      key={task.id} 
+      draggableId={task.id.toString()} // Added .toString() for safety
+      index={index} 
+      isDragDisabled={isDragDisabled}
+    >
       {(provided, snapshot) => (
         <div
           ref={provided.innerRef}
@@ -40,7 +48,7 @@ const TaskCard = ({ task, index, onClickEdit, onClickDelete, isDragDisabled, isD
             /* --- TRANSITIONS --- */
             ${snapshot.isDragging ? '' : 'transition-colors duration-200'}
 
-            /* --- DRAG STATE (Fixed: No Rotation) --- */
+            /* --- DRAG STATE --- */
             ${snapshot.isDragging 
                 ? 'shadow-2xl shadow-black/20 ring-2 ring-indigo-500/50 z-50 bg-gray-50 dark:bg-zinc-800' 
                 : 'hover:border-indigo-300 dark:hover:border-zinc-700 hover:shadow-lg dark:hover:shadow-black/20'
@@ -77,7 +85,7 @@ const TaskCard = ({ task, index, onClickEdit, onClickDelete, isDragDisabled, isD
                 {task.priority}
               </span>
 
-              {/* NEW: Tag Badge */}
+              {/* Tag Badge */}
               {task.tag && task.tag !== 'General' && (
                 <span className="text-[10px] font-medium text-zinc-500 dark:text-zinc-400 bg-gray-100 dark:bg-zinc-800 px-1.5 py-0.5 rounded border border-gray-200 dark:border-zinc-700 flex items-center gap-1">
                    <Tag size={10} /> {task.tag}
@@ -109,7 +117,7 @@ const TaskCard = ({ task, index, onClickEdit, onClickDelete, isDragDisabled, isD
                  : 'bg-indigo-50 dark:bg-indigo-500/10 border-indigo-100 dark:border-indigo-500/20 text-indigo-600 dark:text-indigo-400'
                }
             `}>
-                {task.assignee ? task.assignee.charAt(0).toUpperCase() : 'U'}
+               {task.assignee ? task.assignee.charAt(0).toUpperCase() : 'U'}
             </div>
           </div>
         </div>
