@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const Board = require('../models/Board');
 const User = require('../models/User'); 
+const Task = require('../models/Task'); 
 const { protect } = require('../middleware/authMiddleware');
 
 // @route   GET /api/boards
@@ -40,17 +41,15 @@ router.post('/', protect, async (req, res) => {
 });
 
 // @route   GET /api/boards/:id
-// @desc    Get single board details (Security Check included)
+// @desc    Get single board details
 router.get('/:id', protect, async (req, res) => {
   try {
-    // ✅ CRITICAL FIX: POPULATE NAMES
     const board = await Board.findById(req.params.id)
         .populate('owner', 'name email')
         .populate('members.user', 'name email');
 
     if (!board) return res.status(404).json({ message: 'Board not found' });
 
-    // Check permissions (Owner or Member)
     const isOwner = board.owner._id.toString() === req.user.id;
     const isMember = board.members.some(m => m.user && m.user._id.toString() === req.user.id);
 
@@ -65,17 +64,89 @@ router.get('/:id', protect, async (req, res) => {
 });
 
 // ---------------------------------------------------------
+// ✅ NEW: LEAVE WORKSPACE LOGIC
+// ---------------------------------------------------------
+
+// @route   PUT /api/boards/:id/leave
+// @desc    Remove the logged-in user from the members list
+router.put('/:id/leave', protect, async (req, res) => {
+  try {
+    const board = await Board.findById(req.params.id);
+
+    if (!board) {
+      return res.status(404).json({ message: 'Board not found' });
+    }
+
+    // 1. Security check: Owners cannot "leave" (they must delete)
+    if (board.owner.toString() === req.user.id) {
+      return res.status(400).json({ 
+        message: 'Owners cannot leave their own workspace. Please delete the workspace instead.' 
+      });
+    }
+
+    // 2. Remove the user from the members array
+    board.members = board.members.filter(
+      (m) => m.user.toString() !== req.user.id
+    );
+
+    await board.save();
+
+    // 3. Cleanup: Remove notifications for this board from the user's profile
+    await User.findByIdAndUpdate(req.user.id, {
+      $pull: { notifications: { boardId: req.params.id } }
+    });
+
+    res.status(200).json({ message: 'Successfully left the workspace' });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// ---------------------------------------------------------
+// DELETE LOGIC (With Cascading Task Deletion)
+// ---------------------------------------------------------
+
+// @route   DELETE /api/boards/:id
+// @desc    Delete a board and all its tasks (Owner only)
+router.delete('/:id', protect, async (req, res) => {
+  try {
+    const board = await Board.findById(req.params.id);
+
+    if (!board) {
+      return res.status(404).json({ message: 'Board not found' });
+    }
+
+    if (board.owner.toString() !== req.user.id) {
+      return res.status(401).json({ message: 'User not authorized to delete this workspace' });
+    }
+
+    // 1. Delete all tasks linked to this board
+    await Task.deleteMany({ board: req.params.id });
+
+    // 2. Remove board notifications from ALL users
+    await User.updateMany(
+      { "notifications.boardId": req.params.id },
+      { $pull: { notifications: { boardId: req.params.id } } }
+    );
+
+    // 3. Delete the board itself
+    await board.deleteOne();
+
+    res.status(200).json({ message: 'Workspace and all associated tasks deleted' });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// ---------------------------------------------------------
 // JOINING LOGIC
 // ---------------------------------------------------------
 
-// @route   PUT /api/boards/:id/join
-// @desc    Add the logged-in user to the board's members list
 router.put('/:id/join', protect, async (req, res) => {
   try {
     const board = await Board.findById(req.params.id);
     if (!board) return res.status(404).json({ message: 'Board not found' });
 
-    // 1. Check if user is already in the board (Owner or Member)
     const isOwner = board.owner.toString() === req.user.id;
     const isMember = board.members.some(m => m.user.toString() === req.user.id);
 
@@ -83,10 +154,8 @@ router.put('/:id/join', protect, async (req, res) => {
         return res.status(200).json(board);
     }
 
-    // 2. ✅ READ ROLE FROM FRONTEND (Default to 'viewer' if missing)
     const role = req.body.role || 'viewer';
 
-    // 3. Add user to members list with the specific role
     board.members.push({ 
         user: req.user.id, 
         role: role 
@@ -94,7 +163,6 @@ router.put('/:id/join', protect, async (req, res) => {
 
     await board.save();
 
-    // 4. SEND NOTIFICATION TO OWNER
     if (!isOwner) {
         await User.findByIdAndUpdate(board.owner, {
             $push: { 
