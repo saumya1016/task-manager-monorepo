@@ -39,7 +39,8 @@ const BoardColumn = ({ column, tasks, searchQuery, priorityFilter, isViewer, onE
       </div>
 
       {/* Droppable Area */}
-      <StrictModeDroppable droppableId={column.id} isDropDisabled={isViewer || !!searchQuery || priorityFilter !== 'All'}>
+      {/* FIX 1: Removed `!!searchQuery || priorityFilter !== 'All'` from isDropDisabled */}
+      <StrictModeDroppable droppableId={column.id} isDropDisabled={isViewer}>
         {(provided, snapshot) => (
           <div
             {...provided.droppableProps}
@@ -57,7 +58,8 @@ const BoardColumn = ({ column, tasks, searchQuery, priorityFilter, isViewer, onE
                 index={index} 
                 onClickEdit={onEdit} 
                 onClickDelete={(id) => onDelete({ taskId: id, columnId: column.id })} 
-                isDragDisabled={!!searchQuery || priorityFilter !== 'All' || isViewer} 
+                // FIX 2: Removed filter checks from isDragDisabled
+                isDragDisabled={isViewer} 
                 readOnly={isViewer} 
                 isDone={column.id === 'col-4'} 
               />

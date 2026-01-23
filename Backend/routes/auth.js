@@ -4,9 +4,9 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
 const User = require('../models/User');
+const { protect } = require('../middleware/authMiddleware'); // 👈 ADDED THIS IMPORT
 
 // ❌ REMOVED: const sendEmail = require('../utils/sendEmail'); 
-// (We removed this import because the file is deleted)
 
 const generateToken = (id) => {
   return jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn: '30d' });
@@ -74,15 +74,6 @@ router.post('/forgot-password', async (req, res) => {
     user.resetPasswordExpires = Date.now() + 3600000; // 1 hour
     await user.save();
 
-    // ⚠️ NOTE: Backend Email Sending is DISABLED because sendEmail.js was deleted.
-    // If you need password resets, you must implement EmailJS on the frontend for this too.
-    
-    /* const resetUrl = `${process.env.CLIENT_URL}/reset-password/${resetToken}`;
-    const message = `...html...`;
-    
-    await sendEmail({ ... }); 
-    */
-
     res.status(200).json({ message: "Password reset logic needs Frontend implementation." });
   } catch (error) {
     res.status(500).json({ message: "Server error" });
@@ -147,7 +138,34 @@ router.post('/google-sync', async (req, res) => {
   }
 });
 
-// ❌ REMOVED: router.post('/invite') 
-// (This is now handled entirely by your React Frontend via EmailJS)
+// ---------------------------------------------------------
+// 👇 THIS IS THE NEW PART FOR NOTIFICATIONS
+// ---------------------------------------------------------
+
+// @route   GET /api/auth/notifications
+// @desc    Get user notifications
+router.get('/notifications', protect, async (req, res) => {
+    try {
+        const user = await User.findById(req.user.id).select('notifications');
+        // Sort by newest first
+        const sorted = user.notifications.sort((a, b) => b.createdAt - a.createdAt);
+        res.json(sorted);
+    } catch (error) {
+        res.status(500).json({ message: "Error fetching notifications" });
+    }
+});
+
+// @route   PUT /api/auth/notifications/read
+// @desc    Mark all notifications as read
+router.put('/notifications/read', protect, async (req, res) => {
+    try {
+        const user = await User.findById(req.user.id);
+        user.notifications.forEach(n => n.isRead = true);
+        await user.save();
+        res.json(user.notifications);
+    } catch (error) {
+        res.status(500).json({ message: "Error updating notifications" });
+    }
+});
 
 module.exports = router;
