@@ -12,13 +12,18 @@
   "license": "ISC",
   "type": "commonjs",
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.975.0",
     "bcryptjs": "^3.0.3",
     "cors": "^2.8.5",
     "dotenv": "^17.2.3",
     "express": "^5.2.1",
     "jsonwebtoken": "^9.0.3",
     "mongoose": "^9.1.1",
+    "multer": "^2.0.2",
+    "multer-s3": "^3.0.1",
     "nodemailer": "^7.0.12",
+    "socket.io": "^4.8.3",
+    "socket.io-client": "^4.8.3",
     "tailwindcss-animate": "^1.0.7"
   },
   "devDependencies": {
