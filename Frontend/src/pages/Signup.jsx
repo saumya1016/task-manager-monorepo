@@ -19,17 +19,29 @@ const Signup = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
-  // 1. ✅ Get the "Return Ticket" (Redirect Path)
   const params = new URLSearchParams(location.search);
   const redirectPath = params.get('redirect') || '/dashboard';
+  // ✅ Check if this registration should be isolated to this tab only
+  const shouldIsolate = params.get('session_isolate') === 'true';
 
   useEffect(() => {
-    // Pre-fill email if invited
     const invitedEmail = params.get('email');
     if (invitedEmail) setEmail(invitedEmail);
   }, [location]);
 
-  // Handle Google Popup Login
+  // --- HELPER: SAVE USER SESSION ---
+  const saveUserSession = (userData) => {
+    const userString = JSON.stringify(userData);
+    
+    if (shouldIsolate) {
+      // ✅ Isolated Tab: Only save to sessionStorage so it doesn't overwrite other accounts
+      sessionStorage.setItem('userInfo', userString);
+    } else {
+      // ✅ Normal Signup: Save to localStorage for global persistence
+      localStorage.setItem('userInfo', userString);
+    }
+  };
+
   const handleGoogleLogin = async () => {
     setError('');
     try {
@@ -42,11 +54,10 @@ const Signup = () => {
         avatar: fbUser.photoURL 
       });
 
-      localStorage.setItem('userInfo', JSON.stringify(data));
+      // ✅ Use isolation-aware save function
+      saveUserSession(data);
       
-      // ✅ FIX: Navigate to Redirect Path (Board) or Dashboard
       navigate(redirectPath);
-      
       toast.success(`Welcome ${fbUser.displayName}!`);
     } catch (err) {
       console.error(err);
@@ -54,7 +65,6 @@ const Signup = () => {
     }
   };
 
-  // Standard Email Submit
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
@@ -62,11 +72,11 @@ const Signup = () => {
     try {
       const { data } = await axios.post('/auth/signup', { name, email, password }); 
       
-      localStorage.setItem('userInfo', JSON.stringify(data));
+      // ✅ Use isolation-aware save function
+      saveUserSession(data);
       
-      // ✅ FIX: Navigate to Redirect Path (Board) or Dashboard
       navigate(redirectPath);
-      
+      toast.success("Account created successfully!");
     } catch (err) {
       setError(err.response?.data?.message || 'Registration failed');
     } finally {
@@ -93,8 +103,14 @@ const Signup = () => {
               <div className="w-12 h-12 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-xl flex items-center justify-center shadow-lg shadow-emerald-500/20 mx-auto mb-4">
                  <UserPlus size={24} className="text-white" />
               </div>
-              <h1 className="text-2xl font-bold tracking-tight text-white">Create Account</h1>
-              <p className="text-sm text-zinc-400 mt-2">Join your team and start building.</p>
+              <h1 className="text-2xl font-bold tracking-tight text-white">
+                {shouldIsolate ? "Tab-Isolated Signup" : "Create Account"}
+              </h1>
+              {shouldIsolate && (
+                <p className="text-[10px] text-emerald-400 font-bold uppercase mt-2 italic">
+                  Creating session for this workspace only
+                </p>
+              )}
             </div>
 
             <button 
@@ -112,7 +128,7 @@ const Signup = () => {
             
             <form onSubmit={handleSubmit} className="space-y-5">
               {error && (
-                  <div className="p-3 bg-red-500/10 border border-red-500/20 text-red-400 text-xs rounded-lg text-center font-medium animate-in slide-in-from-top-2">
+                  <div className="p-3 bg-red-500/10 border border-red-500/20 text-red-400 text-xs rounded-lg text-center font-medium">
                     {error}
                   </div>
               )}
@@ -121,7 +137,7 @@ const Signup = () => {
                 <label className="block text-xs font-medium text-zinc-300 mb-1.5 ml-1">Full Name</label>
                 <input 
                   type="text" 
-                  className="w-full px-4 py-3 bg-zinc-950/50 border border-zinc-800 rounded-xl text-base sm:text-sm text-white outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 transition-all placeholder:text-zinc-600 appearance-none"
+                  className="w-full px-4 py-3 bg-zinc-950/50 border border-zinc-800 rounded-xl text-base sm:text-sm text-white outline-none focus:ring-2 focus:ring-emerald-500/50 transition-all placeholder:text-zinc-600"
                   placeholder="John Doe"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
@@ -133,7 +149,7 @@ const Signup = () => {
                 <label className="block text-xs font-medium text-zinc-300 mb-1.5 ml-1">Email address</label>
                 <input 
                   type="email" 
-                  className="w-full px-4 py-3 bg-zinc-950/50 border border-zinc-800 rounded-xl text-base sm:text-sm text-white outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 transition-all placeholder:text-zinc-600 appearance-none"
+                  className="w-full px-4 py-3 bg-zinc-950/50 border border-zinc-800 rounded-xl text-base sm:text-sm text-white outline-none focus:ring-2 focus:ring-emerald-500/50 transition-all placeholder:text-zinc-600"
                   placeholder="name@example.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
@@ -145,7 +161,7 @@ const Signup = () => {
                 <label className="block text-xs font-medium text-zinc-300 mb-1.5 ml-1">Password</label>
                 <input 
                   type={showPassword ? "text" : "password"}
-                  className="w-full px-4 py-3 bg-zinc-950/50 border border-zinc-800 rounded-xl text-base sm:text-sm text-white outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 transition-all pr-10 placeholder:text-zinc-600 appearance-none"
+                  className="w-full px-4 py-3 bg-zinc-950/50 border border-zinc-800 rounded-xl text-base sm:text-sm text-white outline-none focus:ring-2 focus:ring-emerald-500/50 transition-all pr-10 placeholder:text-zinc-600"
                   placeholder="Create a password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
@@ -163,7 +179,7 @@ const Signup = () => {
               <button 
                 type="submit" 
                 disabled={loading}
-                className="w-full bg-emerald-600 text-white font-bold py-3 rounded-xl hover:bg-emerald-500 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 mt-4 active:scale-[0.98] touch-manipulation shadow-lg shadow-emerald-500/20"
+                className="w-full bg-emerald-600 text-white font-bold py-3 rounded-xl hover:bg-emerald-500 transition-all disabled:opacity-50 flex items-center justify-center gap-2 mt-4 active:scale-[0.98] shadow-lg shadow-emerald-500/20"
               >
                 {loading && <Loader2 className="animate-spin" size={18} />}
                 {loading ? 'Creating account...' : 'Sign Up with Email'}
@@ -171,8 +187,7 @@ const Signup = () => {
             </form>
 
             <p className="mt-8 text-center text-xs text-zinc-500">
-              {/* ✅ FIX: Pass the redirect path to Login as well */}
-              Already have an account? <Link to={`/login?redirect=${encodeURIComponent(redirectPath)}`} className="text-white font-medium hover:underline decoration-zinc-500 underline-offset-4 p-2">Log in</Link>
+              Already have an account? <Link to={`/login?redirect=${encodeURIComponent(redirectPath)}&session_isolate=${shouldIsolate}`} className="text-white font-medium hover:underline p-2">Log in</Link>
             </p>
         </div>
       </div>

@@ -109,7 +109,7 @@ const Landing = () => {
       {/* Footer */}
       <footer className="border-t border-zinc-900 py-12 mt-12">
         <div className="max-w-7xl mx-auto px-6 flex flex-col md:flex-row justify-between items-center text-zinc-500 text-sm">
-            <p>© 2024 TaskFlow Inc.</p>
+            <p>© 2026 TaskFlow Inc.</p>
             <div className="flex gap-6 mt-4 md:mt-0">
                 <a href="#" className="hover:text-zinc-300">Privacy</a>
                 <a href="#" className="hover:text-zinc-300">Terms</a>

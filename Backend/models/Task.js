@@ -2,11 +2,11 @@ const mongoose = require('mongoose');
 
 const taskSchema = mongoose.Schema(
   {
-    // Link to Board (The container)
     board: {
       type: mongoose.Schema.Types.ObjectId,
       required: true,
       ref: 'Board',
+      index: true, // ✅ SPEED UP: Fast deletions when a board is deleted
     },
 
     content: { type: String, required: true }, 
@@ -16,14 +16,12 @@ const taskSchema = mongoose.Schema(
     deadline: { type: Date },
     tag: { type: String, default: 'General' },
     
-    // Display Name (For the UI card)
     assignee: { type: String, default: 'Unassigned' },
 
-    // ✅ CRITICAL ADDITION: Link to specific User ID
-    // This allows the "My Tasks" page to find tasks for a logged-in user.
     assignedTo: { 
       type: mongoose.Schema.Types.ObjectId, 
-      ref: 'User' 
+      ref: 'User',
+      index: true, // ✅ SPEED UP: Fast lookups for the "My Tasks" page
     },
 
     position: { type: Number, default: 0 },

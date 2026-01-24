@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useParams, useNavigate, useLocation } from 'react-router-dom'; // Added useLocation
+import { useParams, useNavigate, useLocation } from 'react-router-dom'; 
 import axios from '../utils/axios';
 import { Loader2, UserPlus, LogIn } from 'lucide-react';
 import { toast } from 'sonner';
@@ -7,31 +7,28 @@ import { toast } from 'sonner';
 const JoinBoard = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const location = useLocation(); // Hook to access URL params
+  const location = useLocation(); 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   
-  const user = JSON.parse(localStorage.getItem('userInfo'));
+  // ✅ FIX: Check sessionStorage first for tab-isolation, fallback to localStorage
+  const user = JSON.parse(sessionStorage.getItem('userInfo') || localStorage.getItem('userInfo'));
 
   const handleJoin = async () => {
-    // 1. Get query params (e.g., ?role=admin)
     const searchParams = new URLSearchParams(location.search);
-    // Keep the query string so we can re-use it after login
     const queryString = location.search; 
 
     if (!user) {
         toast.info("Please login or create an account to join.");
-        // Pass the FULL URL path + query string to redirect properly
-        navigate(`/login?redirect=/join/${id}${queryString}`);
+        // ✅ Add a flag to tell the login page to use sessionStorage for this tab
+        navigate(`/login?redirect=/join/${id}${queryString}&session_isolate=true`);
         return; 
     }
 
     setLoading(true);
     try {
-      // 2. Extract role (default to viewer if missing)
       const role = searchParams.get('role') || 'viewer';
 
-      // 3. Send role to backend
       await axios.put(`/boards/${id}/join`, { role });
       
       toast.success("Joined board successfully!");
@@ -39,8 +36,9 @@ const JoinBoard = () => {
     } catch (err) {
       console.error(err);
       if (err.response && err.response.status === 401) {
+          // ✅ Clear both on unauthorized
           localStorage.removeItem('userInfo');
-          // Redirect with query string on expiry too
+          sessionStorage.removeItem('userInfo');
           navigate(`/login?redirect=/join/${id}${queryString}`);
           return;
       }

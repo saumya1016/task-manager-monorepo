@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Link, useNavigate, useLocation } from 'react-router-dom'; // ✅ Added useLocation
+import { Link, useNavigate, useLocation } from 'react-router-dom'; 
 import { Eye, EyeOff, Loader2, ArrowLeft, Layout } from 'lucide-react';
 import axios from '../utils/axios';
 import { toast } from 'sonner';
@@ -16,12 +16,25 @@ const Login = () => {
   const [loading, setLoading] = useState(false);
   
   const navigate = useNavigate();
-  const location = useLocation(); // ✅ Hook to read URL params
+  const location = useLocation();
 
-  // 1. Get the "Return Ticket" (Redirect Path)
-  // If URL is /login?redirect=/join/123, then redirectPath will be /join/123
   const params = new URLSearchParams(location.search);
   const redirectPath = params.get('redirect') || '/dashboard';
+  // ✅ Check if this login should be isolated to this tab only
+  const shouldIsolate = params.get('session_isolate') === 'true';
+
+  // --- HELPER: SAVE USER SESSION ---
+  const saveUserSession = (userData) => {
+    const userString = JSON.stringify(userData);
+    
+    if (shouldIsolate) {
+      // ✅ Isolated Tab: Only save to sessionStorage so it doesn't overwrite other tabs
+      sessionStorage.setItem('userInfo', userString);
+    } else {
+      // ✅ Normal Login: Save to localStorage for persistence
+      localStorage.setItem('userInfo', userString);
+    }
+  };
 
   // --- HANDLE FORGOT PASSWORD ---
   const handleForgotPassword = async () => {
@@ -29,12 +42,10 @@ const Login = () => {
       toast.error("Please enter your email address in the field above first.");
       return;
     }
-
     try {
       await sendPasswordResetEmail(auth, email);
       toast.success("Password reset email sent! Please check your inbox.");
     } catch (err) {
-      console.error("Reset Error:", err);
       toast.error(err.message || "Failed to send reset email.");
     }
   };
@@ -52,11 +63,10 @@ const Login = () => {
         avatar: fbUser.photoURL 
       });
 
-      localStorage.setItem('userInfo', JSON.stringify(data));
+      // ✅ Use isolation-aware save function
+      saveUserSession(data);
       
-      // ✅ FIX: Navigate to Redirect Path (Board) or Dashboard
       navigate(redirectPath);
-      
       toast.success(`Welcome back, ${fbUser.displayName}!`);
     } catch (err) {
       console.error("Google Auth Error:", err);
@@ -71,11 +81,11 @@ const Login = () => {
     setLoading(true);
     try {
       const { data } = await axios.post('/auth/login', { email, password });
-      localStorage.setItem('userInfo', JSON.stringify(data));
       
-      // ✅ FIX: Navigate to Redirect Path (Board) or Dashboard
+      // ✅ Use isolation-aware save function
+      saveUserSession(data);
+      
       navigate(redirectPath);
-      
       toast.success("Logged in successfully!");
     } catch (err) {
       setError(err.response?.data?.message || 'Login failed');
@@ -104,7 +114,14 @@ const Login = () => {
               <div className="w-12 h-12 bg-gradient-to-br from-indigo-500 to-violet-600 rounded-xl flex items-center justify-center shadow-lg shadow-indigo-500/20 mx-auto mb-4">
                  <Layout size={24} className="text-white" />
               </div>
-              <h1 className="text-2xl font-bold tracking-tight text-white">Welcome back</h1>
+              <h1 className="text-2xl font-bold tracking-tight text-white">
+                {shouldIsolate ? "Tab-Isolated Login" : "Welcome back"}
+              </h1>
+              {shouldIsolate && (
+                <p className="text-[10px] text-indigo-400 font-bold uppercase mt-2">
+                  Joining workspace in this tab only
+                </p>
+              )}
             </div>
 
             <button 
@@ -121,7 +138,7 @@ const Login = () => {
             </div>
             
             <form onSubmit={handleSubmit} className="space-y-5">
-              {error && <div className="p-3 bg-red-500/10 border border-red-500/20 text-red-400 text-xs rounded-lg text-center animate-in slide-in-from-top-2">{error}</div>}
+              {error && <div className="p-3 bg-red-500/10 border border-red-500/20 text-red-400 text-xs rounded-lg text-center">{error}</div>}
               
               <div>
                 <label className="block text-xs font-medium text-zinc-300 mb-1.5 ml-1">Email address</label>
@@ -175,8 +192,7 @@ const Login = () => {
             </form>
 
             <p className="mt-8 text-center text-xs text-zinc-500">
-              {/* ✅ FIX: Pass the redirect path to Signup as well */}
-              Don't have an account? <Link to={`/signup?redirect=${encodeURIComponent(redirectPath)}`} className="text-white font-medium hover:underline decoration-zinc-500 underline-offset-4">Create one</Link>
+              Don't have an account? <Link to={`/signup?redirect=${encodeURIComponent(redirectPath)}&session_isolate=${shouldIsolate}`} className="text-white font-medium hover:underline decoration-zinc-500 underline-offset-4">Create one</Link>
             </p>
         </div>
       </div>

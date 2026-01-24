@@ -9,7 +9,8 @@ import ProjectBoard from './pages/ProjectBoard';
 import ProfilePage from './pages/ProfilePage'; 
 import Dashboard from './pages/Dashboard';
 import JoinBoard from './pages/JoinBoard'; 
-import MyTasks from './pages/MyTasks'; // 👈 1. IMPORT THIS
+import MyTasks from './pages/MyTasks';
+import FeedbackView from './components/FeedbackView';
 
 function App() {
   return (
@@ -22,8 +23,10 @@ function App() {
         {/* Dashboard is the main hub */}
         <Route path="/dashboard" element={<Dashboard />} />
 
-        {/* ✅ 2. ADD THIS ROUTE */}
         <Route path="/mytasks" element={<MyTasks />} />
+
+        {/* ✅ 2. ADD THE FEEDBACK ROUTE */}
+        <Route path="/feedback" element={<FeedbackView />} />
 
         {/* ProjectBoard handles the actual board view */}
         <Route path="/board/:id" element={<ProjectBoard />} />
