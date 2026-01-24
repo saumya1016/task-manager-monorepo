@@ -6,9 +6,8 @@ import {
 } from 'lucide-react';
 import axios from '../utils/axios';
 import { toast } from 'sonner';
-import { io } from 'socket.io-client'; // ✅ 1. Import Socket Client
+import { io } from 'socket.io-client';
 
-// ✅ 2. Initialize Socket (Ensure this URL matches your backend)
 const socket = io('http://localhost:5000');
 
 const WorkspaceManagePage = () => {
@@ -17,7 +16,7 @@ const WorkspaceManagePage = () => {
     const [board, setBoard] = useState(null);
     const [loading, setLoading] = useState(true);
     const [revokingId, setRevokingId] = useState(null);
-    const [onlineUsers, setOnlineUsers] = useState([]); // ✅ 3. New state for presence
+    const [onlineUsers, setOnlineUsers] = useState([]);
 
     const user = JSON.parse(sessionStorage.getItem('userInfo') || localStorage.getItem('userInfo'));
 
@@ -36,19 +35,13 @@ const WorkspaceManagePage = () => {
         fetchDetails();
     }, [id, navigate]);
 
-    // ✅ 4. SOCKET PRESENCE LOGIC
     useEffect(() => {
         if (board && user) {
-            // Join the presence room for this specific board
             socket.emit('join-presence', { boardId: id, userId: user.id || user._id });
-
-            // Listen for list updates from the server
             socket.on('online-users-update', (users) => {
                 setOnlineUsers(users);
             });
         }
-
-        // Cleanup on unmount
         return () => {
             socket.off('online-users-update');
         };
@@ -72,7 +65,7 @@ const WorkspaceManagePage = () => {
     const copyInviteLink = () => {
         const link = `${window.location.origin}/join/${id}`;
         navigator.clipboard.writeText(link);
-        toast.success("Invite Link Copied", { description: "Share this with your team members." });
+        toast.success("Invite Link Copied");
     };
 
     if (loading) return (
@@ -97,7 +90,6 @@ const WorkspaceManagePage = () => {
             </nav>
 
             <div className="max-w-7xl mx-auto mt-12 px-8">
-                {/* Hero Header */}
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-16 gap-8">
                     <div className="space-y-4">
                         <div className="flex items-center gap-2">
@@ -115,7 +107,7 @@ const WorkspaceManagePage = () => {
                         </div>
                         <div className="bg-white border border-zinc-200 p-6 rounded-[2rem] shadow-sm">
                             <p className="text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-1 text-center">Authority</p>
-                            <p className="text-xl font-black italic text-indigo-600 text-center uppercase">{board.owner._id === user.id ? 'Admin' : 'Member'}</p>
+                            <p className="text-xl font-black italic text-indigo-600 text-center uppercase">{board.owner._id === (user.id || user._id) ? 'Admin' : 'Member'}</p>
                         </div>
                     </div>
                 </div>
@@ -135,10 +127,14 @@ const WorkspaceManagePage = () => {
                                     <tr className="group transition-colors">
                                         <td className="px-8 py-6">
                                             <div className="flex items-center gap-4">
-                                                {/* ✅ ADMIN AVATAR WITH PRESENCE */}
+                                                {/* ✅ ADMIN AVATAR WITH S3 IMG + PRESENCE */}
                                                 <div className="relative">
-                                                  <div className={`w-12 h-12 rounded-2xl bg-indigo-600 text-white flex items-center justify-center font-black shadow-lg shadow-indigo-200 uppercase transition-all duration-500 ${onlineUsers.includes(board.owner._id) ? 'ring-2 ring-emerald-500 ring-offset-2' : ''}`}>
-                                                      {board.owner.name?.charAt(0)}
+                                                  <div className={`w-12 h-12 rounded-2xl bg-indigo-600 text-white flex items-center justify-center font-black shadow-lg shadow-indigo-200 uppercase transition-all duration-500 overflow-hidden ${onlineUsers.includes(board.owner._id) ? 'ring-2 ring-emerald-500 ring-offset-2' : ''}`}>
+                                                      {board.owner.profilePicture ? (
+                                                          <img src={board.owner.profilePicture} className="w-full h-full object-cover" alt="Admin" />
+                                                      ) : (
+                                                          board.owner.name?.charAt(0)
+                                                      )}
                                                   </div>
                                                   {onlineUsers.includes(board.owner._id) && (
                                                       <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-white rounded-full flex items-center justify-center shadow-sm">
@@ -164,10 +160,14 @@ const WorkspaceManagePage = () => {
                                         <tr key={m.user._id} className="group hover:bg-zinc-50/30 transition-all duration-300">
                                             <td className="px-8 py-6">
                                                 <div className="flex items-center gap-4">
-                                                    {/* ✅ MEMBER AVATAR WITH PRESENCE */}
+                                                    {/* ✅ MEMBER AVATAR WITH S3 IMG + PRESENCE */}
                                                     <div className="relative">
-                                                      <div className={`w-12 h-12 rounded-2xl flex items-center justify-center font-black uppercase shadow-inner border transition-all duration-500 ${onlineUsers.includes(m.user._id) ? 'bg-white text-indigo-600 border-emerald-500 scale-105 shadow-emerald-100' : 'bg-zinc-100 text-zinc-400 border-zinc-200/50'}`}>
-                                                          {m.user.name?.charAt(0) || '?'}
+                                                      <div className={`w-12 h-12 rounded-2xl flex items-center justify-center font-black uppercase shadow-inner border transition-all duration-500 overflow-hidden ${onlineUsers.includes(m.user._id) ? 'bg-white text-indigo-600 border-emerald-500 scale-105 shadow-emerald-100' : 'bg-zinc-100 text-zinc-400 border-zinc-200/50'}`}>
+                                                          {m.user.profilePicture ? (
+                                                              <img src={m.user.profilePicture} className="w-full h-full object-cover" alt="Member" />
+                                                          ) : (
+                                                              m.user.name?.charAt(0) || '?'
+                                                          )}
                                                       </div>
                                                       {onlineUsers.includes(m.user._id) && (
                                                           <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-white rounded-full flex items-center justify-center shadow-sm">
@@ -176,7 +176,7 @@ const WorkspaceManagePage = () => {
                                                       )}
                                                     </div>
                                                     <div className="min-w-0">
-                                                        <p className="font-black text-sm text-zinc-800 truncate">{m.user.name} {m.user._id === user.id && <span className="text-indigo-600 text-[10px] ml-1">(You)</span>}</p>
+                                                        <p className="font-black text-sm text-zinc-800 truncate">{m.user.name} {(m.user._id === user.id || m.user._id === user._id) && <span className="text-indigo-600 text-[10px] ml-1">(You)</span>}</p>
                                                         <p className="text-[10px] text-zinc-400 font-bold truncate">{m.user.email}</p>
                                                     </div>
                                                 </div>
@@ -185,7 +185,7 @@ const WorkspaceManagePage = () => {
                                                 <span className="text-[8px] font-black uppercase bg-zinc-100 text-zinc-400 px-3 py-1 rounded-full tracking-widest border border-zinc-200">Collaborator</span>
                                             </td>
                                             <td className="px-8 py-6 text-right">
-                                                {(board.owner._id === user.id || board.owner === user._id) && m.user._id !== user.id && (
+                                                {(board.owner._id === (user.id || user._id)) && m.user._id !== (user.id || user._id) && (
                                                     <div className="flex justify-end">
                                                         {revokingId === m.user._id ? (
                                                             <div className="flex items-center gap-2 animate-in fade-in zoom-in-95 duration-200">
@@ -210,7 +210,6 @@ const WorkspaceManagePage = () => {
                             </table>
                         </div>
 
-                        {/* INVITE LINK SECTION */}
                         <div className="bg-gradient-to-br from-white to-zinc-50 border border-zinc-200 rounded-[2.5rem] p-10 shadow-sm">
                             <div className="flex items-center justify-between mb-8">
                                 <div>

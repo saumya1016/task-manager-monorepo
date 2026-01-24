@@ -1,5 +1,6 @@
 const express = require('express');
 const dotenv = require('dotenv');
+dotenv.config();
 const cors = require('cors');
 const http = require('http'); // ✅ Required for Socket.io
 const { Server } = require('socket.io'); // ✅ Required for Socket.io
@@ -10,7 +11,6 @@ const authRoutes = require('./routes/auth');
 const taskRoutes = require('./routes/tasks');
 const boardRoutes = require('./routes/boards');
 
-dotenv.config();
 connectDB();
 
 const app = express();

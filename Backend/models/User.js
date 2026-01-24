@@ -6,9 +6,12 @@ const userSchema = mongoose.Schema(
     email: { type: String, required: true, unique: true },
     password: { type: String, required: true },
     
-    // ✅ Updated for S3 Support
     profilePicture: { type: String, default: '' }, 
     avatar: { type: String, default: 'US' }, 
+
+    // ✅ ADD THESE FOR OTP LOGIC
+    resetOTP: { type: String },
+    resetOTPExpires: { type: Date },
 
     notifications: [{
       message: { type: String },

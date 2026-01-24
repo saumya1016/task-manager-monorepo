@@ -23,6 +23,7 @@ const signupUser = async (req, res) => {
             _id: user._id,
             name: user.name,
             email: user.email,
+            profilePicture: user.profilePicture, // ✅ Added for S3
             token: generateToken(user._id),
         });
     } catch (error) {
@@ -41,6 +42,7 @@ const loginUser = async (req, res) => {
                 name: user.name,
                 email: user.email,
                 avatar: user.avatar,
+                profilePicture: user.profilePicture, // ✅ Added for S3
                 token: generateToken(user._id),
             });
         } else {
@@ -48,6 +50,27 @@ const loginUser = async (req, res) => {
         }
     } catch (error) {
         res.status(500).json({ message: error.message });
+    }
+};
+
+// @desc    Update User Profile Picture
+// @route   PUT /api/auth/update-dp
+const updateProfilePicture = async (req, res) => {
+    try {
+        if (!req.file) {
+            return res.status(400).json({ message: "No image file provided" });
+        }
+
+        // req.file.location is the S3 URL provided by multer-s3
+        const updatedUser = await User.findByIdAndUpdate(
+            req.user.id,
+            { profilePicture: req.file.location },
+            { new: true }
+        ).select('-password');
+
+        res.status(200).json(updatedUser);
+    } catch (error) {
+        res.status(500).json({ message: "Database update failed", error: error.message });
     }
 };
 
@@ -75,6 +98,7 @@ const googleSync = async (req, res) => {
             name: user.name,
             email: user.email,
             avatar: user.avatar,
+            profilePicture: user.profilePicture, // ✅ Added
             token: generateToken(user._id),
         });
     } catch (error) {
@@ -110,5 +134,6 @@ module.exports = {
     loginUser,
     googleSync,
     getNotifications,
-    markNotificationsRead
+    markNotificationsRead,
+    updateProfilePicture // ✅ Exported
 };
