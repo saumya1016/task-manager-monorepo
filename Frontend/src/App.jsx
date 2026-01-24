@@ -10,6 +10,7 @@ import ProfilePage from './pages/ProfilePage';
 import Dashboard from './pages/Dashboard';
 import JoinBoard from './pages/JoinBoard'; 
 import MyTasks from './pages/MyTasks';
+import WorkspaceManagePage from './pages/WorkspaceManagePage'; // ✅ ADDED THIS
 import FeedbackView from './components/FeedbackView';
 
 function App() {
@@ -25,12 +26,16 @@ function App() {
 
         <Route path="/mytasks" element={<MyTasks />} />
 
-        {/* ✅ 2. ADD THE FEEDBACK ROUTE */}
+        {/* ✅ FEEDBACK ROUTE */}
         <Route path="/feedback" element={<FeedbackView />} />
 
         {/* ProjectBoard handles the actual board view */}
         <Route path="/board/:id" element={<ProjectBoard />} />
         
+        {/* ✅ NEW: WORKSPACE MANAGEMENT ROUTE */}
+        {/* This allows viewing member details and admin actions on a dedicated page */}
+        <Route path="/workspace/:id/manage" element={<WorkspaceManagePage />} />
+
         {/* Support the Join Link */}
         <Route path="/join/:id" element={<JoinBoard />} />
 

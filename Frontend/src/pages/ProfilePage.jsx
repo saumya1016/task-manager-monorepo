@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
   ArrowLeft, CheckCircle, Clock, 
-  Camera, LogOut, Activity, Settings, Zap, Mail, ChevronRight, Lock, Users, Trash2, ShieldCheck
+  Camera, LogOut, Activity, Settings, Zap, Mail, ChevronRight, Lock, Users, Trash2, ShieldCheck, XCircle
 } from 'lucide-react';
 import axios from '../utils/axios'; 
 import { toast } from 'sonner';
@@ -11,26 +11,23 @@ const ProfilePage = () => {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('overview');
   const [stats, setStats] = useState({ completed: 0, inProgress: 0, efficiency: '0%' });
-  const [joinedBoards, setJoinedBoards] = useState([]); // New state for workspaces
+  const [joinedBoards, setJoinedBoards] = useState([]); 
   const [loadingBoards, setLoadingBoards] = useState(false);
+  const [leavingId, setLeavingId] = useState(null); // ✅ NEW: Track which workspace is in "Leave?" state
 
-  // Check sessionStorage first for tab-isolation, fallback to localStorage
   const user = JSON.parse(sessionStorage.getItem('userInfo') || localStorage.getItem('userInfo'));
 
   useEffect(() => {
     if (!user) { navigate('/login'); return; }
-    
     const fetchStats = async () => {
       try {
         const { data } = await axios.get('/tasks/stats');
         setStats(data);
       } catch (error) { console.error("Failed to fetch stats", error); }
     };
-
     fetchStats();
   }, [user, navigate]);
 
-  // Fetch joined boards when "Teams" tab is clicked
   useEffect(() => {
     if (activeTab === 'workspaces') {
       fetchWorkspaces();
@@ -40,7 +37,7 @@ const ProfilePage = () => {
   const fetchWorkspaces = async () => {
     setLoadingBoards(true);
     try {
-      const { data } = await axios.get('/boards'); // Gets all boards user belongs to
+      const { data } = await axios.get('/boards'); 
       setJoinedBoards(data);
     } catch (error) {
       toast.error("Failed to load workspaces");
@@ -49,34 +46,31 @@ const ProfilePage = () => {
     }
   };
 
+  // ✅ UPDATED: Professional Inline Leave logic
   const handleLeaveBoard = async (boardId) => {
-    if (!window.confirm("Are you sure you want to leave this workspace?")) return;
     try {
       await axios.post(`/boards/${boardId}/leave`);
       setJoinedBoards(prev => prev.filter(b => b._id !== boardId));
-      toast.success("You left the workspace");
+      toast.success("Departure Successful", { description: "You have left the workspace." });
     } catch (error) {
       toast.error("Error leaving workspace");
+    } finally {
+      setLeavingId(null);
     }
   };
 
   if (!user) return null;
 
-  const efficiencyValue = parseInt(stats.efficiency) || 0;
-  const radius = 32; 
-  const circumference = 2 * Math.PI * radius;
-  const strokeDashoffset = circumference - (efficiencyValue / 100) * circumference;
-
   return (
-    <div className="h-screen bg-white flex overflow-hidden font-sans text-zinc-900">
+    <div className="h-screen bg-white flex overflow-hidden font-sans text-zinc-900 selection:bg-indigo-100">
       
       {/* --- SIDEBAR --- */}
       <aside className="w-64 bg-gray-50 border-r border-gray-200 flex flex-col p-6 z-20">
-        <button onClick={() => navigate(-1)} className="group flex items-center gap-2.5 text-xs font-black uppercase tracking-[0.2em] text-zinc-400 hover:text-indigo-600 transition-all mb-10 active:scale-95">
+        <button onClick={() => navigate('/dashboard')} className="group flex items-center gap-2.5 text-xs font-black uppercase tracking-[0.2em] text-zinc-400 hover:text-indigo-600 transition-all mb-10 active:scale-95">
           <div className="p-2 rounded-lg bg-white border border-gray-200 group-hover:border-indigo-200 transition-all">
             <ArrowLeft size={14} className="group-hover:-translate-x-0.5 transition-transform"/>
           </div>
-          Back
+          Dashboard
         </button>
 
         <div className="flex flex-col items-center mb-10 text-center">
@@ -86,13 +80,13 @@ const ProfilePage = () => {
             </div>
           </div>
           <h2 className="text-base font-bold tracking-tight text-zinc-800 line-clamp-1">{user.name}</h2>
-          <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mt-1 italic">Personal Account</p>
+          <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mt-1 italic">Verified Account</p>
         </div>
 
         <nav className="space-y-1.5 flex-1">
           {[
             { id: 'overview', label: 'Overview', icon: <Activity size={18}/> },
-            { id: 'workspaces', label: 'My Teams', icon: <Users size={18}/> }, // New Section
+            { id: 'workspaces', label: 'My Teams', icon: <Users size={18}/> },
             { id: 'settings', label: 'Settings', icon: <Settings size={18}/> }
           ].map((item) => (
             <button 
@@ -121,10 +115,8 @@ const ProfilePage = () => {
       <main className="flex-1 p-10 overflow-y-auto bg-white relative">
         <div className="max-w-5xl mx-auto">
           
-          {/* TAB 1: OVERVIEW */}
           {activeTab === 'overview' && (
             <div className="grid grid-cols-1 md:grid-cols-4 gap-6 animate-in fade-in slide-in-from-bottom-2 duration-500">
-               {/* ... Your existing Overview Code ... */}
                <div className="md:col-span-3 bg-indigo-600 p-10 rounded-[2rem] relative overflow-hidden group shadow-2xl shadow-indigo-100 text-white italic">
                 <h1 className="text-3xl font-bold mb-2">Welcome, {user.name.split(' ')[0]}.</h1>
                 <p>You've completed <span className="font-black underline">{stats.completed} tasks</span> across your workspaces.</p>
@@ -138,7 +130,6 @@ const ProfilePage = () => {
             </div>
           )}
 
-          {/* TAB 2: WORKSPACES (THE NEW SECTION) */}
           {activeTab === 'workspaces' && (
             <div className="max-w-4xl space-y-10 animate-in fade-in slide-in-from-right-2 duration-500">
               <header>
@@ -146,59 +137,86 @@ const ProfilePage = () => {
                 <p className="text-zinc-500 text-base font-medium">Manage the environments you collaborate in.</p>
               </header>
 
-              <div className="bg-gray-50 rounded-[2.5rem] border border-gray-200 overflow-hidden shadow-sm">
+              <div className="space-y-4">
                 {loadingBoards ? (
                   <div className="p-20 text-center"><Zap className="animate-pulse mx-auto text-indigo-500" /></div>
                 ) : joinedBoards.length === 0 ? (
                   <div className="p-20 text-center text-zinc-400 font-bold uppercase tracking-widest text-xs">No workspaces found.</div>
                 ) : (
-                  <div className="divide-y divide-gray-200">
-                    {joinedBoards.map((board) => (
-                      <div key={board._id} className="p-6 flex items-center justify-between hover:bg-white transition-all group">
+                  joinedBoards.map((board) => (
+                    <div key={board._id} className="bg-white rounded-[2rem] border border-gray-200 overflow-hidden shadow-sm hover:shadow-md transition-all">
+                      <div className="p-6 flex items-center justify-between">
                         <div className="flex items-center gap-5">
-                          <div className="w-12 h-12 rounded-2xl bg-indigo-100 text-indigo-600 flex items-center justify-center font-black text-lg shadow-inner">
-                            {board.title.charAt(0).toUpperCase()}
+                          <div className="w-12 h-12 rounded-2xl bg-indigo-100 text-indigo-600 flex items-center justify-center font-black text-lg shadow-inner uppercase">
+                            {board.title.charAt(0)}
                           </div>
                           <div>
-                            <h4 className="font-bold text-zinc-800 flex items-center gap-2">
+                            <h4 className="font-bold text-zinc-800 flex items-center gap-2 text-lg">
                               {board.title}
                               {board.owner === user._id && <ShieldCheck size={14} className="text-indigo-500" />}
                             </h4>
                             <div className="flex items-center gap-2 mt-0.5 text-[10px] font-black uppercase text-zinc-400">
-                              <span>{board.members?.length || 1} Members</span>
+                              <span className="text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded">{board.members?.length || 1} Members</span>
                               <span>•</span>
                               <span className={board.owner === user._id ? "text-indigo-500" : "text-zinc-400"}>
-                                {board.owner === user._id ? "You are Owner" : "Member"}
+                                {board.owner === user._id ? "Administrator" : "Collaborator"}
                               </span>
                             </div>
                           </div>
                         </div>
 
                         <div className="flex items-center gap-3">
-                          <button onClick={() => navigate(`/board/${board._id}`)} className="px-4 py-2 bg-white border border-gray-200 hover:border-indigo-500 hover:text-indigo-600 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all">
+                          <button 
+                            onClick={() => navigate(`/workspace/${board._id}/manage`)}
+                            className="px-4 py-2 bg-zinc-100 hover:bg-indigo-50 text-zinc-500 hover:text-indigo-600 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-2"
+                          >
+                            <Users size={14}/>
+                            Manage Team
+                          </button>
+                          
+                          <button onClick={() => navigate(`/board/${board._id}`)} className="px-4 py-2 bg-white border border-gray-200 hover:border-indigo-500 hover:text-indigo-600 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all text-zinc-900">
                             Open Board
                           </button>
                           
-                          {/* Owner cannot leave, they must delete from dashboard */}
+                          {/* ✅ UPDATED: Professional Inline Confirmation for Leaving */}
                           {board.owner !== user._id && (
-                            <button 
-                              onClick={() => handleLeaveBoard(board._id)}
-                              className="p-2 text-zinc-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
-                              title="Leave Workspace"
-                            >
-                              <LogOut size={18} />
-                            </button>
+                            <div className="flex items-center gap-2">
+                              {leavingId === board._id ? (
+                                <div className="flex items-center gap-1 animate-in fade-in zoom-in-95 duration-200">
+                                  <button 
+                                    onClick={() => handleLeaveBoard(board._id)}
+                                    className="px-3 py-1.5 bg-red-600 text-white rounded-xl text-[9px] font-black uppercase tracking-widest shadow-lg shadow-red-200 active:scale-95"
+                                  >
+                                    Confirm
+                                  </button>
+                                  <button 
+                                    onClick={() => setLeavingId(null)}
+                                    className="p-2 text-zinc-400 hover:text-zinc-900 transition-colors"
+                                  >
+                                    <XCircle size={18} />
+                                  </button>
+                                </div>
+                              ) : (
+                                <button 
+                                  onClick={() => setLeavingId(board._id)} 
+                                  className="p-2.5 text-zinc-300 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all group" 
+                                  title="Leave Workspace"
+                                >
+                                  <LogOut size={18} className="group-hover:-translate-x-0.5 transition-transform" />
+                                </button>
+                              )}
+                            </div>
                           )}
                         </div>
                       </div>
-                    ))}
-                  </div>
+                    </div>
+                  ))
                 )}
               </div>
             </div>
           )}
 
-          {/* TAB 3: SETTINGS */}
+          {/* TAB: SETTINGS */}
           {activeTab === 'settings' && (
             <div className="max-w-2xl mx-auto space-y-10 animate-in fade-in slide-in-from-right-2 duration-500">
                <header>
@@ -207,7 +225,7 @@ const ProfilePage = () => {
               </header>
               <div className="bg-white p-8 rounded-[2.5rem] border border-gray-200 shadow-lg space-y-8">
                 <div className="space-y-2">
-                  <label className="text-[10px] font-black uppercase text-zinc-400 ml-1">Email Key (Read Only)</label>
+                  <label className="text-[10px] font-black uppercase text-zinc-400 ml-1 tracking-widest">Email Key (Read Only)</label>
                   <div className="w-full bg-gray-100 border border-gray-200 p-4 rounded-2xl text-zinc-500 text-sm font-bold flex items-center gap-3">
                     <Mail size={16}/> {user.email}
                   </div>
