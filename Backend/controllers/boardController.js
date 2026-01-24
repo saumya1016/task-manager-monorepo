@@ -12,7 +12,8 @@ exports.getBoards = async (req, res) => {
         { 'members.user': req.user.id }
       ]
     })
-    .populate('members.user', 'name email') // ✅ Populate for Profile Member List
+    // ✅ Updated: Added profilePicture to selection
+    .populate('members.user', 'name email profilePicture') 
     .sort({ createdAt: -1 });
     
     res.status(200).json(boards);
@@ -41,8 +42,9 @@ exports.createBoard = async (req, res) => {
 exports.getBoardById = async (req, res) => {
   try {
     const board = await Board.findById(req.params.id)
-        .populate('owner', 'name email')
-        .populate('members.user', 'name email');
+        // ✅ Updated: Added profilePicture to both owner and members selection
+        .populate('owner', 'name email profilePicture')
+        .populate('members.user', 'name email profilePicture');
 
     if (!board) return res.status(404).json({ message: 'Board not found' });
 

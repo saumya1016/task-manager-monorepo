@@ -13,9 +13,10 @@ const ProfilePage = () => {
   const [stats, setStats] = useState({ completed: 0, inProgress: 0, efficiency: '0%' });
   const [joinedBoards, setJoinedBoards] = useState([]); 
   const [loadingBoards, setLoadingBoards] = useState(false);
-  const [leavingId, setLeavingId] = useState(null); // ✅ NEW: Track which workspace is in "Leave?" state
+  const [leavingId, setLeavingId] = useState(null);
 
-  const user = JSON.parse(sessionStorage.getItem('userInfo') || localStorage.getItem('userInfo'));
+  // Parse user info
+  const [user, setUser] = useState(JSON.parse(sessionStorage.getItem('userInfo') || localStorage.getItem('userInfo')));
 
   useEffect(() => {
     if (!user) { navigate('/login'); return; }
@@ -46,12 +47,39 @@ const ProfilePage = () => {
     }
   };
 
-  // ✅ UPDATED: Professional Inline Leave logic
+  // ✅ NEW: Handle DP Upload to S3
+  const handleImageUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const formData = new FormData();
+    formData.append('image', file);
+
+    const loadingToast = toast.loading("Uploading image to cloud...");
+
+    try {
+      // Hits the PUT /api/auth/update-dp route we created
+      const { data } = await axios.put('/auth/update-dp', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+
+      // Update local state and global storage with the new S3 URL
+      const updatedUser = { ...user, profilePicture: data.profilePicture };
+      setUser(updatedUser);
+      sessionStorage.setItem('userInfo', JSON.stringify(updatedUser));
+      localStorage.setItem('userInfo', JSON.stringify(updatedUser));
+      
+      toast.success("Profile picture updated", { id: loadingToast });
+    } catch (err) {
+      toast.error("Upload failed. Ensure S3 bucket policy is set.", { id: loadingToast });
+    }
+  };
+
   const handleLeaveBoard = async (boardId) => {
     try {
       await axios.post(`/boards/${boardId}/leave`);
       setJoinedBoards(prev => prev.filter(b => b._id !== boardId));
-      toast.success("Departure Successful", { description: "You have left the workspace." });
+      toast.success("Departure Successful");
     } catch (error) {
       toast.error("Error leaving workspace");
     } finally {
@@ -64,7 +92,6 @@ const ProfilePage = () => {
   return (
     <div className="h-screen bg-white flex overflow-hidden font-sans text-zinc-900 selection:bg-indigo-100">
       
-      {/* --- SIDEBAR --- */}
       <aside className="w-64 bg-gray-50 border-r border-gray-200 flex flex-col p-6 z-20">
         <button onClick={() => navigate('/dashboard')} className="group flex items-center gap-2.5 text-xs font-black uppercase tracking-[0.2em] text-zinc-400 hover:text-indigo-600 transition-all mb-10 active:scale-95">
           <div className="p-2 rounded-lg bg-white border border-gray-200 group-hover:border-indigo-200 transition-all">
@@ -74,11 +101,30 @@ const ProfilePage = () => {
         </button>
 
         <div className="flex flex-col items-center mb-10 text-center">
-          <div className="w-20 h-20 rounded-2xl bg-indigo-600 p-0.5 shadow-xl mb-4">
-            <div className="w-full h-full rounded-[1.1rem] bg-white flex items-center justify-center text-2xl font-black text-indigo-600 uppercase">
-              {user.name?.charAt(0)}
+          {/* ✅ UPDATED: S3 Profile Picture Display with Camera Trigger */}
+          <div className="relative group">
+            <div className="w-20 h-20 rounded-2xl bg-indigo-600 p-0.5 shadow-xl mb-4 overflow-hidden border border-zinc-200/50">
+              {user.profilePicture ? (
+                <img 
+                  src={user.profilePicture} 
+                  className="w-full h-full object-cover rounded-[1.1rem]" 
+                  alt="Profile" 
+                  onError={(e) => { e.target.src = ""; }} 
+                />
+              ) : (
+                <div className="w-full h-full rounded-[1.1rem] bg-white flex items-center justify-center text-2xl font-black text-indigo-600 uppercase">
+                  {user.name?.charAt(0)}
+                </div>
+              )}
             </div>
+            
+            {/* Camera Overlay for Upload */}
+            <label className="absolute inset-0 w-20 h-20 flex items-center justify-center bg-black/40 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer mb-4">
+              <Camera className="text-white" size={20} />
+              <input type="file" hidden accept="image/*" onChange={handleImageUpload} />
+            </label>
           </div>
+          
           <h2 className="text-base font-bold tracking-tight text-zinc-800 line-clamp-1">{user.name}</h2>
           <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mt-1 italic">Verified Account</p>
         </div>
@@ -111,7 +157,6 @@ const ProfilePage = () => {
         </button>
       </aside>
 
-      {/* --- MAIN CONTENT AREA --- */}
       <main className="flex-1 p-10 overflow-y-auto bg-white relative">
         <div className="max-w-5xl mx-auto">
           
@@ -178,7 +223,6 @@ const ProfilePage = () => {
                             Open Board
                           </button>
                           
-                          {/* ✅ UPDATED: Professional Inline Confirmation for Leaving */}
                           {board.owner !== user._id && (
                             <div className="flex items-center gap-2">
                               {leavingId === board._id ? (
@@ -216,7 +260,6 @@ const ProfilePage = () => {
             </div>
           )}
 
-          {/* TAB: SETTINGS */}
           {activeTab === 'settings' && (
             <div className="max-w-2xl mx-auto space-y-10 animate-in fade-in slide-in-from-right-2 duration-500">
                <header>
