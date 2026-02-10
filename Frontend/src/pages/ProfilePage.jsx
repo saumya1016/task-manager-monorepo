@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
   ArrowLeft, CheckCircle, Clock, 
-  Camera, LogOut, Activity, Settings, Zap, Mail, ChevronRight, Lock, Users, Trash2, ShieldCheck, XCircle
+  Camera, LogOut, Activity, Settings, Zap, Mail, ChevronRight, Lock, Users, Trash2, ShieldCheck, XCircle, User, Copy
 } from 'lucide-react';
 import axios from '../utils/axios'; 
 import { toast } from 'sonner';
@@ -15,8 +15,25 @@ const ProfilePage = () => {
   const [loadingBoards, setLoadingBoards] = useState(false);
   const [leavingId, setLeavingId] = useState(null);
 
-  // Parse user info
-  const [user, setUser] = useState(JSON.parse(sessionStorage.getItem('userInfo') || localStorage.getItem('userInfo')));
+  const [user, setUser] = useState(() => {
+    const saved = sessionStorage.getItem('userInfo') || localStorage.getItem('userInfo');
+    return saved ? JSON.parse(saved) : null;
+  });
+  
+  const [formData, setFormData] = useState({ name: user?.name || '' });
+  const [isUpdating, setIsUpdating] = useState(false);
+
+  // Copy to Clipboard Helper
+  const copyToClipboard = (text, label) => {
+    navigator.clipboard.writeText(text);
+    toast.success(`${label} copied to clipboard!`);
+  };
+
+  useEffect(() => {
+    if (user && !formData.name) {
+      setFormData({ name: user.name });
+    }
+  }, [user]);
 
   useEffect(() => {
     if (!user) { navigate('/login'); return; }
@@ -47,31 +64,40 @@ const ProfilePage = () => {
     }
   };
 
-  // ✅ NEW: Handle DP Upload to S3
   const handleImageUpload = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
-
-    const formData = new FormData();
-    formData.append('image', file);
-
+    const uploadData = new FormData();
+    uploadData.append('image', file);
     const loadingToast = toast.loading("Uploading image to cloud...");
-
     try {
-      // Hits the PUT /api/auth/update-dp route we created
-      const { data } = await axios.put('/auth/update-dp', formData, {
+      const { data } = await axios.put('/auth/update-dp', uploadData, {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
-
-      // Update local state and global storage with the new S3 URL
       const updatedUser = { ...user, profilePicture: data.profilePicture };
       setUser(updatedUser);
       sessionStorage.setItem('userInfo', JSON.stringify(updatedUser));
       localStorage.setItem('userInfo', JSON.stringify(updatedUser));
-      
       toast.success("Profile picture updated", { id: loadingToast });
     } catch (err) {
-      toast.error("Upload failed. Ensure S3 bucket policy is set.", { id: loadingToast });
+      toast.error("Upload failed.", { id: loadingToast });
+    }
+  };
+
+  const handleUpdateProfile = async () => {
+    if (!formData.name.trim()) return toast.error("Name cannot be empty");
+    setIsUpdating(true);
+    try {
+      const { data } = await axios.put('/auth/update-profile', formData);
+      const updatedUser = { ...user, name: data.name };
+      setUser(updatedUser);
+      sessionStorage.setItem('userInfo', JSON.stringify(updatedUser));
+      localStorage.setItem('userInfo', JSON.stringify(updatedUser));
+      toast.success("Profile updated successfully");
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Failed to update profile");
+    } finally {
+      setIsUpdating(false);
     }
   };
 
@@ -101,30 +127,21 @@ const ProfilePage = () => {
         </button>
 
         <div className="flex flex-col items-center mb-10 text-center">
-          {/* ✅ UPDATED: S3 Profile Picture Display with Camera Trigger */}
           <div className="relative group">
             <div className="w-20 h-20 rounded-2xl bg-indigo-600 p-0.5 shadow-xl mb-4 overflow-hidden border border-zinc-200/50">
               {user.profilePicture ? (
-                <img 
-                  src={user.profilePicture} 
-                  className="w-full h-full object-cover rounded-[1.1rem]" 
-                  alt="Profile" 
-                  onError={(e) => { e.target.src = ""; }} 
-                />
+                <img src={user.profilePicture} className="w-full h-full object-cover rounded-[1.1rem]" alt="Profile" />
               ) : (
                 <div className="w-full h-full rounded-[1.1rem] bg-white flex items-center justify-center text-2xl font-black text-indigo-600 uppercase">
                   {user.name?.charAt(0)}
                 </div>
               )}
             </div>
-            
-            {/* Camera Overlay for Upload */}
             <label className="absolute inset-0 w-20 h-20 flex items-center justify-center bg-black/40 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer mb-4">
               <Camera className="text-white" size={20} />
               <input type="file" hidden accept="image/*" onChange={handleImageUpload} />
             </label>
           </div>
-          
           <h2 className="text-base font-bold tracking-tight text-zinc-800 line-clamp-1">{user.name}</h2>
           <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mt-1 italic">Verified Account</p>
         </div>
@@ -161,16 +178,66 @@ const ProfilePage = () => {
         <div className="max-w-5xl mx-auto">
           
           {activeTab === 'overview' && (
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-6 animate-in fade-in slide-in-from-bottom-2 duration-500">
-               <div className="md:col-span-3 bg-indigo-600 p-10 rounded-[2rem] relative overflow-hidden group shadow-2xl shadow-indigo-100 text-white italic">
-                <h1 className="text-3xl font-bold mb-2">Welcome, {user.name.split(' ')[0]}.</h1>
-                <p>You've completed <span className="font-black underline">{stats.completed} tasks</span> across your workspaces.</p>
-              </div>
-              <div className="bg-white p-8 rounded-[2rem] border border-gray-100 flex flex-col items-center justify-center shadow-md">
-                <div className="relative w-24 h-24 mb-4 text-indigo-600 flex items-center justify-center">
-                  <span className="text-xl font-black">{stats.efficiency}</span>
+            <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
+              <header className="flex flex-col gap-1">
+                <h1 className="text-4xl font-black tracking-tight text-zinc-900 italic">
+                  Hello, {user.name.split(' ')[0]} <span className="not-italic">👋</span>
+                </h1>
+                <p className="text-zinc-500 font-medium text-lg">Here's a snapshot of your productivity today.</p>
+              </header>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="md:col-span-2 bg-indigo-600 rounded-[2.5rem] p-8 text-white relative overflow-hidden group shadow-2xl shadow-indigo-100">
+                  <div className="relative z-10 flex flex-col h-full justify-between">
+                    <div className="bg-white/20 w-fit p-3 rounded-2xl backdrop-blur-md mb-6"><Zap size={24} className="fill-white text-white" /></div>
+                    <div>
+                      <h3 className="text-white/80 uppercase text-[10px] font-black tracking-[0.2em] mb-2">Total Impact</h3>
+                      <p className="text-4xl font-bold leading-tight italic">
+                        You've crushed <span className="underline decoration-indigo-300 underline-offset-8">{stats.completed} tasks</span>
+                        <br /> across all workspaces.
+                      </p>
+                    </div>
+                  </div>
+                  <div className="absolute -right-10 -bottom-10 w-64 h-64 bg-indigo-500 rounded-full blur-3xl opacity-50 group-hover:scale-110 transition-transform duration-700" />
                 </div>
-                <span className="text-[11px] font-bold uppercase text-zinc-400">Efficiency</span>
+
+                <div className="bg-white rounded-[2.5rem] border border-gray-100 p-8 shadow-xl shadow-gray-50 flex flex-col items-center justify-center text-center group hover:border-indigo-100 transition-colors">
+                  <div className="relative mb-4 flex items-center justify-center">
+                    <svg className="w-32 h-32 transform -rotate-90">
+                      <circle cx="64" cy="64" r="58" stroke="currentColor" strokeWidth="10" fill="transparent" className="text-gray-100" />
+                      <circle cx="64" cy="64" r="58" stroke="currentColor" strokeWidth="10" fill="transparent" strokeDasharray={364.4} strokeDashoffset={364.4 - (parseInt(stats.efficiency) / 100) * 364.4} className="text-indigo-600 transition-all duration-1000 ease-out" strokeLinecap="round" />
+                    </svg>
+                    <div className="absolute inset-0 flex flex-col items-center justify-center">
+                      <span className="text-3xl font-black text-zinc-900 leading-none">{stats.efficiency}</span>
+                      <span className="text-[9px] font-black uppercase text-zinc-400 mt-1 tracking-tighter">Score</span>
+                    </div>
+                  </div>
+                  <h4 className="font-bold text-zinc-800 italic">Work Efficiency</h4>
+                </div>
+
+                <div className="bg-zinc-50 rounded-[2rem] p-6 border border-zinc-100 flex items-center gap-5">
+                  <div className="p-4 bg-emerald-100 text-emerald-600 rounded-2xl"><CheckCircle size={24} /></div>
+                  <div>
+                    <p className="text-[10px] font-black uppercase text-zinc-400 tracking-widest">Completed</p>
+                    <p className="text-2xl font-black text-zinc-800 leading-none">{stats.completed}</p>
+                  </div>
+                </div>
+
+                <div className="bg-zinc-50 rounded-[2rem] p-6 border border-zinc-100 flex items-center gap-5">
+                  <div className="p-4 bg-orange-100 text-orange-600 rounded-2xl"><Clock size={24} /></div>
+                  <div>
+                    <p className="text-[10px] font-black uppercase text-zinc-400 tracking-widest">In Progress</p>
+                    <p className="text-2xl font-black text-zinc-800 leading-none">{stats.inProgress || 0}</p>
+                  </div>
+                </div>
+
+                <div className="bg-zinc-50 rounded-[2rem] p-6 border border-zinc-100 flex items-center gap-5">
+                  <div className="p-4 bg-indigo-100 text-indigo-600 rounded-2xl"><Users size={24} /></div>
+                  <div>
+                    <p className="text-[10px] font-black uppercase text-zinc-400 tracking-widest">Team Role</p>
+                    <p className="text-2xl font-black text-zinc-800 leading-none">Creator</p>
+                  </div>
+                </div>
               </div>
             </div>
           )}
@@ -212,40 +279,28 @@ const ProfilePage = () => {
 
                         <div className="flex items-center gap-3">
                           <button 
-                            onClick={() => navigate(`/workspace/${board._id}/manage`)}
-                            className="px-4 py-2 bg-zinc-100 hover:bg-indigo-50 text-zinc-500 hover:text-indigo-600 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-2"
+                            onClick={() => copyToClipboard(`${window.location.origin}/board/${board._id}`, "Board Invite")}
+                            className="p-2.5 text-zinc-300 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-all"
+                            title="Copy Invite Link"
                           >
-                            <Users size={14}/>
-                            Manage Team
+                            <Copy size={18} />
                           </button>
-                          
+
+                          <button onClick={() => navigate(`/workspace/${board._id}/manage`)} className="px-4 py-2 bg-zinc-100 hover:bg-indigo-50 text-zinc-500 hover:text-indigo-600 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-2">
+                            <Users size={14}/> Manage Team
+                          </button>
                           <button onClick={() => navigate(`/board/${board._id}`)} className="px-4 py-2 bg-white border border-gray-200 hover:border-indigo-500 hover:text-indigo-600 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all text-zinc-900">
                             Open Board
                           </button>
-                          
                           {board.owner !== user._id && (
                             <div className="flex items-center gap-2">
                               {leavingId === board._id ? (
-                                <div className="flex items-center gap-1 animate-in fade-in zoom-in-95 duration-200">
-                                  <button 
-                                    onClick={() => handleLeaveBoard(board._id)}
-                                    className="px-3 py-1.5 bg-red-600 text-white rounded-xl text-[9px] font-black uppercase tracking-widest shadow-lg shadow-red-200 active:scale-95"
-                                  >
-                                    Confirm
-                                  </button>
-                                  <button 
-                                    onClick={() => setLeavingId(null)}
-                                    className="p-2 text-zinc-400 hover:text-zinc-900 transition-colors"
-                                  >
-                                    <XCircle size={18} />
-                                  </button>
+                                <div className="flex items-center gap-1">
+                                  <button onClick={() => handleLeaveBoard(board._id)} className="px-3 py-1.5 bg-red-600 text-white rounded-xl text-[9px] font-black uppercase tracking-widest shadow-lg active:scale-95">Confirm</button>
+                                  <button onClick={() => setLeavingId(null)} className="p-2 text-zinc-400 hover:text-zinc-900"><XCircle size={18} /></button>
                                 </div>
                               ) : (
-                                <button 
-                                  onClick={() => setLeavingId(board._id)} 
-                                  className="p-2.5 text-zinc-300 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all group" 
-                                  title="Leave Workspace"
-                                >
+                                <button onClick={() => setLeavingId(board._id)} className="p-2.5 text-zinc-300 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all group">
                                   <LogOut size={18} className="group-hover:-translate-x-0.5 transition-transform" />
                                 </button>
                               )}
@@ -262,19 +317,40 @@ const ProfilePage = () => {
 
           {activeTab === 'settings' && (
             <div className="max-w-2xl mx-auto space-y-10 animate-in fade-in slide-in-from-right-2 duration-500">
-               <header>
+              <header>
                 <h2 className="text-3xl font-black tracking-tight text-zinc-800 italic">Settings</h2>
                 <p className="text-zinc-500 text-base font-medium">Update your account information.</p>
               </header>
               <div className="bg-white p-8 rounded-[2.5rem] border border-gray-200 shadow-lg space-y-8">
+                
                 <div className="space-y-2">
-                  <label className="text-[10px] font-black uppercase text-zinc-400 ml-1 tracking-widest">Email Key (Read Only)</label>
-                  <div className="w-full bg-gray-100 border border-gray-200 p-4 rounded-2xl text-zinc-500 text-sm font-bold flex items-center gap-3">
-                    <Mail size={16}/> {user.email}
+                  <label className="text-[10px] font-black uppercase text-zinc-400 ml-1 tracking-widest">Display Name</label>
+                  <div className="relative group">
+                    <User className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400 group-focus-within:text-indigo-600 transition-colors" size={18}/>
+                    <input 
+                      type="text"
+                      value={formData.name}
+                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                      className="w-full bg-gray-50 border border-gray-200 p-4 pl-12 rounded-2xl text-zinc-800 text-sm font-bold focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
+                      placeholder="Your name"
+                    />
                   </div>
                 </div>
-                <button className="w-full py-4 bg-zinc-900 text-white rounded-2xl font-black uppercase tracking-[0.2em] text-[11px] hover:bg-black transition-all">
-                  Save Security Changes
+
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black uppercase text-zinc-400 ml-1 tracking-widest">Email Address (Primary)</label>
+                  <div className="w-full bg-gray-100 border border-gray-200 p-4 rounded-2xl text-zinc-400 text-sm font-bold flex items-center gap-3 cursor-not-allowed">
+                    <Mail size={16}/> {user.email}
+                    <Lock size={14} className="ml-auto opacity-50" />
+                  </div>
+                </div>
+
+                <button 
+                  onClick={handleUpdateProfile}
+                  disabled={isUpdating}
+                  className="w-full py-4 bg-zinc-900 text-white rounded-2xl font-black uppercase tracking-[0.2em] text-[11px] hover:bg-black transition-all active:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed"
+                >
+                  {isUpdating ? "Processing..." : "Save Security Changes"}
                 </button>
               </div>
             </div>

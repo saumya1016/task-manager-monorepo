@@ -16,7 +16,7 @@ const MyTasks = () => {
   const fetchMyTasks = useCallback(async (isRefresh = false) => {
     if (isRefresh) setRefreshing(true);
     try {
-      // ✅ API call to your real backend route
+      // API call to your real backend route
       const { data } = await axios.get('/tasks/my-tasks'); 
       setTasks(data);
     } catch (error) { 

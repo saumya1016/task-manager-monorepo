@@ -6,7 +6,7 @@ const taskSchema = mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       required: true,
       ref: 'Board',
-      index: true, // ✅ SPEED UP: Fast deletions when a board is deleted
+      index: true, // Fast deletions when a board is deleted
     },
 
     content: { type: String, required: true }, 
@@ -21,7 +21,7 @@ const taskSchema = mongoose.Schema(
     assignedTo: { 
       type: mongoose.Schema.Types.ObjectId, 
       ref: 'User',
-      index: true, // ✅ SPEED UP: Fast lookups for the "My Tasks" page
+      index: true, // Fast lookups for the "My Tasks" page
     },
 
     position: { type: Number, default: 0 },

@@ -9,7 +9,7 @@ const userSchema = mongoose.Schema(
     profilePicture: { type: String, default: '' }, 
     avatar: { type: String, default: 'US' }, 
 
-    // ✅ ADD THESE FOR OTP LOGIC
+    //ADD THESE FOR OTP LOGIC
     resetOTP: { type: String },
     resetOTPExpires: { type: Date },
 

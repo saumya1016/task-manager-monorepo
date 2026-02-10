@@ -12,7 +12,7 @@ exports.getBoards = async (req, res) => {
         { 'members.user': req.user.id }
       ]
     })
-    // ✅ Updated: Added profilePicture to selection
+    // profilePicture to selection
     .populate('members.user', 'name email profilePicture') 
     .sort({ createdAt: -1 });
     
@@ -42,7 +42,7 @@ exports.createBoard = async (req, res) => {
 exports.getBoardById = async (req, res) => {
   try {
     const board = await Board.findById(req.params.id)
-        // ✅ Updated: Added profilePicture to both owner and members selection
+        // Added profilePicture to both owner and members selection
         .populate('owner', 'name email profilePicture')
         .populate('members.user', 'name email profilePicture');
 

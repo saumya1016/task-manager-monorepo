@@ -14,7 +14,7 @@ const InviteUserModal = ({ isOpen, onClose, boardId }) => {
     e.preventDefault();
     setLoading(true);
 
-    // 1. ✅ Create Invite Link with Role
+    // 1.Create Invite Link with Role
     // Example: https://myapp.com/join/12345?role=member
     const inviteLink = `${window.location.origin}/join/${boardId}?role=${role}`;
 
@@ -84,7 +84,7 @@ const InviteUserModal = ({ isOpen, onClose, boardId }) => {
                 />
             </div>
 
-            {/* ✅ Role Selection Grid */}
+            {/* Role Selection Grid */}
             <div>
                 <label className="block text-xs font-bold text-zinc-500 uppercase mb-2">Select Permission Role</label>
                 <div className="grid grid-cols-3 gap-2">

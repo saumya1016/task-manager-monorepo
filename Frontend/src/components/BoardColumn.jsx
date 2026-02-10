@@ -3,7 +3,7 @@ import { Droppable } from '@hello-pangea/dnd';
 import { Layout } from 'lucide-react';
 import TaskCard from './TaskCard';
 
-// Helper moved here since it's used by the column
+
 export const StrictModeDroppable = ({ children, ...props }) => {
   const [enabled, setEnabled] = useState(false);
   useEffect(() => {
@@ -39,7 +39,6 @@ const BoardColumn = ({ column, tasks, searchQuery, priorityFilter, isViewer, onE
       </div>
 
       {/* Droppable Area */}
-      {/* FIX 1: Removed `!!searchQuery || priorityFilter !== 'All'` from isDropDisabled */}
       <StrictModeDroppable droppableId={column.id} isDropDisabled={isViewer}>
         {(provided, snapshot) => (
           <div
@@ -58,8 +57,8 @@ const BoardColumn = ({ column, tasks, searchQuery, priorityFilter, isViewer, onE
                 index={index} 
                 onClickEdit={onEdit} 
                 onClickDelete={(id) => onDelete({ taskId: id, columnId: column.id })} 
-                // FIX 2: Removed filter checks from isDragDisabled
                 isDragDisabled={isViewer} 
+                isViewer={isViewer} 
                 readOnly={isViewer} 
                 isDone={column.id === 'col-4'} 
               />

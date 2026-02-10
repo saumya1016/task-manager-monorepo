@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { X, Calendar, User, Tag, AlignLeft, Flag } from 'lucide-react';
 
-// ✅ Now accepts 'members' prop
+//  Now accepts 'members' prop
 const EditTaskModal = ({ task, members = [], onClose, onSave }) => {
   const [content, setContent] = useState(task.content);
   const [description, setDescription] = useState(task.description || '');
@@ -9,7 +9,7 @@ const EditTaskModal = ({ task, members = [], onClose, onSave }) => {
   const [deadline, setDeadline] = useState(task.deadline ? task.deadline.split('T')[0] : '');
   const [tag, setTag] = useState(task.tag || '');
   
-  // ✅ Assignee ID State
+  // Assignee ID State
   const [assigneeId, setAssigneeId] = useState(task.assignedTo || '');
 
   const handleSubmit = () => {
@@ -52,7 +52,7 @@ const EditTaskModal = ({ task, members = [], onClose, onSave }) => {
                 </select>
              </div>
 
-             {/* ✅ ASSIGN USER DROPDOWN */}
+             {/* ASSIGN USER DROPDOWN */}
              <div>
                 <label className="block text-xs font-bold text-zinc-500 uppercase mb-1 flex items-center gap-1"><User size={12}/> Assign To</label>
                 <select value={assigneeId} onChange={(e) => setAssigneeId(e.target.value)} className="w-full bg-gray-50 dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 rounded-lg px-3 py-2 text-sm outline-none dark:text-white">

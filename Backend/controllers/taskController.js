@@ -9,7 +9,6 @@ exports.getMyTasks = async (req, res) => {
             .populate('board', 'title')
             .sort({ deadline: 1 });
 
-        // ✅ FIX: Filter out orphaned tasks to remove "Unknown Board"
         const validTasks = tasks.filter(task => task.board !== null);
 
         const formattedTasks = validTasks.map(task => ({
@@ -75,6 +74,16 @@ exports.createTask = async (req, res) => {
         const { content, boardId, status } = req.body;
         if (!boardId) return res.status(400).json({ message: "Board ID required" });
 
+        const board = await Board.findById(boardId);
+        if (!board) return res.status(404).json({ message: "Board not found" });
+
+        // 🔒 RBAC Check
+        const isOwner = board.owner.toString() === req.user.id;
+        const member = board.members.find(m => m.user.toString() === req.user.id);
+        if (!isOwner && member?.role === 'viewer') {
+            return res.status(403).json({ message: "Viewers cannot create tasks" });
+        }
+
         const taskCount = await Task.countDocuments({ board: boardId, status: status || 'col-1' });
         const task = await Task.create({
             ...req.body,
@@ -93,8 +102,19 @@ exports.createTask = async (req, res) => {
 // @route   PUT /api/tasks/:id
 exports.updateTask = async (req, res) => {
     try {
+        const task = await Task.findById(req.params.id);
+        if (!task) return res.status(404).json({ message: 'Task not found' });
+
+        const board = await Board.findById(task.board);
+        
+        // 🔒 RBAC Check
+        const isOwner = board.owner.toString() === req.user.id;
+        const member = board.members.find(m => m.user.toString() === req.user.id);
+        if (!isOwner && member?.role === 'viewer') {
+            return res.status(403).json({ message: "Viewers cannot edit tasks" });
+        }
+
         const updatedTask = await Task.findByIdAndUpdate(req.params.id, req.body, { new: true });
-        if (!updatedTask) return res.status(404).json({ message: 'Task not found' });
         res.status(200).json(updatedTask);
     } catch (error) {
         res.status(400).json({ message: error.message });
@@ -107,6 +127,16 @@ exports.deleteTask = async (req, res) => {
     try {
         const task = await Task.findById(req.params.id);
         if (!task) return res.status(404).json({ message: 'Task not found' });
+
+        const board = await Board.findById(task.board);
+
+        // 🔒 RBAC Check
+        const isOwner = board.owner.toString() === req.user.id;
+        const member = board.members.find(m => m.user.toString() === req.user.id);
+        if (!isOwner && member?.role === 'viewer') {
+            return res.status(403).json({ message: "Viewers cannot delete tasks" });
+        }
+
         await task.deleteOne();
         res.status(200).json({ id: req.params.id });
     } catch (error) {

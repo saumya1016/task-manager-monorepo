@@ -23,6 +23,6 @@ router.route('/:id')
 // Functional routes
 router.put('/:id/leave', protect, leaveBoard);
 router.put('/:id/join', protect, joinBoard);
-router.delete('/:id/members/:userId', protect, kickMember); // ✅ Kick member route
+router.delete('/:id/members/:userId', protect, kickMember); // Kick member route
 
 module.exports = router;

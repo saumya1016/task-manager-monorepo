@@ -23,14 +23,13 @@ const isOverdue = (dateString) => {
   return new Date(dateString) < new Date().setHours(0,0,0,0);
 };
 
-const TaskCard = ({ task, index, onClickEdit, onClickDelete, isDragDisabled, isDone }) => {
-  // Debugging: Uncomment this line to see if drag is disabled in your console
-  // console.log(`Task ${task.content} Drag Disabled:`, isDragDisabled);
+
+const TaskCard = ({ task, index, onClickEdit, onClickDelete, isDragDisabled, isDone, isViewer }) => {
 
   return (
     <Draggable 
       key={task.id} 
-      draggableId={task.id.toString()} // Added .toString() for safety
+      draggableId={task.id.toString()} 
       index={index} 
       isDragDisabled={isDragDisabled}
     >
@@ -59,11 +58,17 @@ const TaskCard = ({ task, index, onClickEdit, onClickDelete, isDragDisabled, isD
             ${isDone ? 'opacity-60 bg-gray-50/50 dark:bg-zinc-900/50' : ''}
           `}
         >
-          {/* Action Buttons */}
-          <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity bg-white/90 dark:bg-zinc-900/90 p-1 rounded backdrop-blur-sm border border-gray-200 dark:border-zinc-800 z-10">
-            <button onClick={() => onClickEdit(task)} className="p-1 hover:bg-gray-100 dark:hover:bg-zinc-800 rounded text-gray-400 hover:text-indigo-600 dark:text-zinc-400 dark:hover:text-white"><Pencil size={13} /></button>
-            <button onClick={() => onClickDelete(task.id)} className="p-1 hover:bg-red-50 dark:hover:bg-red-500/20 rounded text-gray-400 hover:text-red-500 dark:text-zinc-400 dark:hover:text-red-400"><Trash2 size={13} /></button>
-          </div>
+          {/*Action Buttons - Hidden for Viewers */}
+          {!isViewer && (
+            <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity bg-white/90 dark:bg-zinc-900/90 p-1 rounded backdrop-blur-sm border border-gray-200 dark:border-zinc-800 z-10">
+              <button onClick={() => onClickEdit(task)} className="p-1 hover:bg-gray-100 dark:hover:bg-zinc-800 rounded text-gray-400 hover:text-indigo-600 dark:text-zinc-400 dark:hover:text-white">
+                <Pencil size={13} />
+              </button>
+              <button onClick={() => onClickDelete(task.id)} className="p-1 hover:bg-red-50 dark:hover:bg-red-500/20 rounded text-gray-400 hover:text-red-500 dark:text-zinc-400 dark:hover:text-red-400">
+                <Trash2 size={13} />
+              </button>
+            </div>
+          )}
           
           <div className="flex gap-2 mb-3">
              {isDone && <CheckCircle2 size={18} className="text-emerald-500 shrink-0 mt-0.5" />}
@@ -101,8 +106,8 @@ const TaskCard = ({ task, index, onClickEdit, onClickDelete, isDragDisabled, isD
               {task.deadline && (
                 <div className={`flex items-center gap-1 text-[10px] font-semibold 
                   ${isDone 
-                    ? 'text-gray-300 dark:text-zinc-600 line-through decoration-gray-300' 
-                    : (isOverdue(task.deadline) ? 'text-red-500 dark:text-red-400' : 'text-gray-400 dark:text-zinc-500')
+                     ? 'text-gray-300 dark:text-zinc-600 line-through decoration-gray-300' 
+                     : (isOverdue(task.deadline) ? 'text-red-500 dark:text-red-400' : 'text-gray-400 dark:text-zinc-500')
                   }
                 `}>
                    <Calendar size={12} />
