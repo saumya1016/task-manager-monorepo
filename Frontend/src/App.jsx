@@ -10,7 +10,7 @@ import ProfilePage from './pages/ProfilePage';
 import Dashboard from './pages/Dashboard';
 import JoinBoard from './pages/JoinBoard'; 
 import MyTasks from './pages/MyTasks';
-import WorkspaceManagePage from './pages/WorkspaceManagePage'; // ✅ ADDED THIS
+import WorkspaceManagePage from './pages/WorkspaceManagePage'; 
 import FeedbackView from './components/FeedbackView';
 
 function App() {
@@ -26,13 +26,13 @@ function App() {
 
         <Route path="/mytasks" element={<MyTasks />} />
 
-        {/* ✅ FEEDBACK ROUTE */}
+        {/* FEEDBACK ROUTE */}
         <Route path="/feedback" element={<FeedbackView />} />
 
         {/* ProjectBoard handles the actual board view */}
         <Route path="/board/:id" element={<ProjectBoard />} />
         
-        {/* ✅ NEW: WORKSPACE MANAGEMENT ROUTE */}
+        {/* WORKSPACE MANAGEMENT ROUTE */}
         {/* This allows viewing member details and admin actions on a dedicated page */}
         <Route path="/workspace/:id/manage" element={<WorkspaceManagePage />} />
 

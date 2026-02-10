@@ -11,7 +11,7 @@ const JoinBoard = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   
-  // ✅ FIX: Check sessionStorage first for tab-isolation, fallback to localStorage
+  // Check sessionStorage first for tab-isolation, fallback to localStorage
   const user = JSON.parse(sessionStorage.getItem('userInfo') || localStorage.getItem('userInfo'));
 
   const handleJoin = async () => {
@@ -20,7 +20,7 @@ const JoinBoard = () => {
 
     if (!user) {
         toast.info("Please login or create an account to join.");
-        // ✅ Add a flag to tell the login page to use sessionStorage for this tab
+        // Add a flag to tell the login page to use sessionStorage for this tab
         navigate(`/login?redirect=/join/${id}${queryString}&session_isolate=true`);
         return; 
     }
@@ -36,7 +36,7 @@ const JoinBoard = () => {
     } catch (err) {
       console.error(err);
       if (err.response && err.response.status === 401) {
-          // ✅ Clear both on unauthorized
+          //Clear both on unauthorized
           localStorage.removeItem('userInfo');
           sessionStorage.removeItem('userInfo');
           navigate(`/login?redirect=/join/${id}${queryString}`);

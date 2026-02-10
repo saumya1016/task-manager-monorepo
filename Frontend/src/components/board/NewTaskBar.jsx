@@ -53,7 +53,7 @@ const NewTaskBar = ({
         rows={1}
       />
 
-      {/* 2. Metadata Controls - Subtle and Clean */}
+      {/* 2. Metadata Controls */}
       <div className="flex flex-wrap items-center gap-2 mt-3 pt-3 border-t border-zinc-100 dark:border-zinc-800">
         
         {/* Priority Select */}

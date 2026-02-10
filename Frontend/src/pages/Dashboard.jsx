@@ -6,7 +6,7 @@ import {
   ChevronRight, Settings, User, Menu, X, CheckSquare, Trash2, AlertTriangle, MessageSquareHeart, Clock
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { formatDistanceToNow } from 'date-fns'; // ✅ Added for accurate time
+import { formatDistanceToNow } from 'date-fns'; 
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -16,16 +16,13 @@ const Dashboard = () => {
   const [isCreating, setIsCreating] = useState(false);
   const [error, setError] = useState(false); 
 
-  // ✅ Search Query state preserved
   const [searchQuery, setSearchQuery] = useState('');
-
   const [notifications, setNotifications] = useState([]); 
   const [showNotif, setShowNotif] = useState(false); 
   
   const [isSidebarOpen, setIsSidebarOpen] = useState(false); 
   const [showProfileMenu, setShowProfileMenu] = useState(false); 
 
-  // ✅ Delete Modal States preserved
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [boardToDelete, setBoardToDelete] = useState(null);
   const [confirmText, setConfirmText] = useState('');
@@ -33,7 +30,6 @@ const Dashboard = () => {
 
   const profileMenuRef = useRef(null);
   
-  // ✅ Check both sessionStorage and localStorage for multi-account fix
   const user = JSON.parse(sessionStorage.getItem('userInfo') || localStorage.getItem('userInfo'));
 
   useEffect(() => {
@@ -66,7 +62,6 @@ const Dashboard = () => {
     }
   };
 
-  // ✅ Filter logic preserved
   const filteredBoards = boards.filter((board) =>
     board.title.toLowerCase().includes(searchQuery.toLowerCase())
   );
@@ -189,7 +184,6 @@ const Dashboard = () => {
                     />
                 </div>
 
-                {/* NOTIFICATIONS DROPDOWN */}
                 <div className="relative">
                     <button 
                         onClick={() => { setShowNotif(!showNotif); if (!showNotif) markNotificationsRead(); }} 
@@ -216,7 +210,6 @@ const Dashboard = () => {
                                             </p>
                                             <div className="flex items-center gap-1 mt-1 text-[9px] text-zinc-400 font-bold uppercase tracking-tighter">
                                                 <Clock size={10} />
-                                                {/* ✅ Accurate Time Display */}
                                                 {n.createdAt ? formatDistanceToNow(new Date(n.createdAt), { addSuffix: true }) : 'Just now'}
                                             </div>
                                         </div>
@@ -239,9 +232,14 @@ const Dashboard = () => {
                 <div className="relative" ref={profileMenuRef}>
                     <button 
                       onClick={() => setShowProfileMenu(!showProfileMenu)}
-                      className="w-10 h-10 rounded-xl bg-indigo-600 border border-white/10 flex items-center justify-center text-sm font-black text-white hover:ring-4 hover:ring-indigo-500/10 transition-all shadow-lg shadow-indigo-500/20"
+                      className="w-10 h-10 rounded-xl bg-indigo-600 border border-white/10 flex items-center justify-center text-sm font-black text-white hover:ring-4 hover:ring-indigo-500/10 transition-all shadow-lg shadow-indigo-500/20 overflow-hidden"
                     >
-                        {user?.name?.charAt(0).toUpperCase()}
+                       
+                        {user?.profilePicture ? (
+                            <img src={user.profilePicture} className="w-full h-full object-cover" alt="Profile" />
+                        ) : (
+                            user?.name?.charAt(0).toUpperCase()
+                        )}
                     </button>
                     
                     {showProfileMenu && (
@@ -316,7 +314,14 @@ const Dashboard = () => {
                         </div>
                         <div className="flex items-center justify-between">
                             <div className="flex -space-x-3">
-                                <div className="w-10 h-10 rounded-xl bg-indigo-600 border-4 border-white dark:border-zinc-900 flex items-center justify-center text-xs text-white font-black shadow-sm uppercase">{user?.name?.charAt(0)}</div>
+                                {/* Owner Avatar with S3 logic */}
+                                <div className="w-10 h-10 rounded-xl bg-indigo-600 border-4 border-white dark:border-zinc-900 flex items-center justify-center text-xs text-white font-black shadow-sm uppercase overflow-hidden">
+                                    {user?.profilePicture ? (
+                                        <img src={user.profilePicture} className="w-full h-full object-cover" alt="Owner" />
+                                    ) : (
+                                        user?.name?.charAt(0)
+                                    )}
+                                </div>
                                 {board.members?.length > 0 && <div className="w-10 h-10 rounded-xl bg-zinc-100 dark:bg-zinc-800 border-4 border-white dark:border-zinc-900 flex items-center justify-center text-[10px] font-black shadow-sm">+{board.members.length}</div>}
                             </div>
                             <div className="w-10 h-10 rounded-xl bg-zinc-50 dark:bg-zinc-800 flex items-center justify-center text-zinc-400 group-hover:bg-indigo-600 group-hover:text-white transition-all shadow-inner">

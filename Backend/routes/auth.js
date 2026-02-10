@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { protect } = require('../middleware/authMiddleware');
-const upload = require('../utils/s3Config'); // 👈 1. Import S3 Config Utility
+const upload = require('../utils/s3Config');
 
 // Import Controller functions
 const {
@@ -10,7 +10,10 @@ const {
     googleSync,
     getNotifications,
     markNotificationsRead,
-    updateProfilePicture // 👈 2. Import the new DP controller
+    updateProfilePicture,
+    updateProfile, 
+    forgotPassword, 
+    resetPassword
 } = require('../controllers/authController');
 
 // --- Standard Routes ---
@@ -18,8 +21,14 @@ router.post('/signup', signupUser);
 router.post('/login', loginUser);
 router.post('/google-sync', googleSync);
 
+// --- Password Reset Routes ---
+router.post('/forgot-password', forgotPassword);
+router.post('/reset-password', resetPassword);
+
 // --- Profile Routes ---
-// ✅ 3. Add the PUT route for DP. 
+// fix the "Cannot PUT /api/auth/update-profile" error
+router.put('/update-profile', protect, updateProfile); 
+
 // 'image' must match the key used in Frontend FormData.
 router.put('/update-dp', protect, upload.single('image'), updateProfilePicture);
 

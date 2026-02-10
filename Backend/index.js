@@ -2,8 +2,8 @@ const express = require('express');
 const dotenv = require('dotenv');
 dotenv.config();
 const cors = require('cors');
-const http = require('http'); // ✅ Required for Socket.io
-const { Server } = require('socket.io'); // ✅ Required for Socket.io
+const http = require('http'); //Required for Socket.io
+const { Server } = require('socket.io'); //Required for Socket.io
 const connectDB = require('./config/db');
 
 // Import Routes
@@ -14,12 +14,12 @@ const boardRoutes = require('./routes/boards');
 connectDB();
 
 const app = express();
-const server = http.createServer(app); // ✅ Create HTTP server
+const server = http.createServer(app); // Create HTTP server
 
 // Socket.io Setup
 const io = new Server(server, {
   cors: {
-    origin: "*", // Adjust this to your frontend URL in production
+    origin: "*", // Adjust this to frontend URL in production
     methods: ["GET", "POST"]
   }
 });
@@ -30,7 +30,7 @@ const activeUsers = {}; // Structure: { boardId: [userId1, userId2] }
 io.on('connection', (socket) => {
   console.log('User connected:', socket.id);
 
-  // ✅ 1. JOIN PRESENCE ROOM
+  //1. J OIN PRESENCE ROOM
   socket.on('join-presence', ({ boardId, userId }) => {
     socket.join(boardId);
     socket.userId = userId; // Store for disconnect logic
@@ -45,7 +45,7 @@ io.on('connection', (socket) => {
     io.to(boardId).emit('online-users-update', activeUsers[boardId]);
   });
 
-  // ✅ 2. HANDLE DISCONNECT
+  // 2. HANDLE DISCONNECT
   socket.on('disconnect', () => {
     const { boardId, userId } = socket;
     if (boardId && activeUsers[boardId]) {
@@ -68,7 +68,7 @@ app.use('/api/boards', boardRoutes);
 
 const PORT = process.env.PORT || 5000;
 
-// ✅ IMPORTANT: Change app.listen to server.listen
+
 server.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });

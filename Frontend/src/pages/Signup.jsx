@@ -21,7 +21,7 @@ const Signup = () => {
 
   const params = new URLSearchParams(location.search);
   const redirectPath = params.get('redirect') || '/dashboard';
-  // ✅ Check if this registration should be isolated to this tab only
+  // Check if this registration should be isolated to this tab only
   const shouldIsolate = params.get('session_isolate') === 'true';
 
   useEffect(() => {
@@ -34,10 +34,10 @@ const Signup = () => {
     const userString = JSON.stringify(userData);
     
     if (shouldIsolate) {
-      // ✅ Isolated Tab: Only save to sessionStorage so it doesn't overwrite other accounts
+      // Isolated Tab: Only save to sessionStorage so it doesn't overwrite other accounts
       sessionStorage.setItem('userInfo', userString);
     } else {
-      // ✅ Normal Signup: Save to localStorage for global persistence
+      // Normal Signup: Save to localStorage for global persistence
       localStorage.setItem('userInfo', userString);
     }
   };
@@ -54,7 +54,7 @@ const Signup = () => {
         avatar: fbUser.photoURL 
       });
 
-      // ✅ Use isolation-aware save function
+      // Use isolation-aware save function
       saveUserSession(data);
       
       navigate(redirectPath);
@@ -72,7 +72,7 @@ const Signup = () => {
     try {
       const { data } = await axios.post('/auth/signup', { name, email, password }); 
       
-      // ✅ Use isolation-aware save function
+      // Use isolation-aware save function
       saveUserSession(data);
       
       navigate(redirectPath);

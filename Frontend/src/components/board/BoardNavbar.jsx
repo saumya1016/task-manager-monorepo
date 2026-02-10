@@ -6,8 +6,9 @@ const BoardNavbar = ({
   boardTitle, isViewer, isDarkMode, setIsDarkMode, 
   searchQuery, setSearchQuery, priorityFilter, setPriorityFilter, 
   onInvite, currentUser,
-  /* ✅ ADDED PROPS */
-  userRole, onLeave 
+  
+  userRole, onLeave, 
+  isOwner // New prop to identify the absolute creator
 }) => {
   const navigate = useNavigate();
 
@@ -70,8 +71,8 @@ const BoardNavbar = ({
           </button>
         )}
 
-        {/* ✅ THE LEAVE ICON (Professional placement) */}
-        {userRole !== 'admin' && (
+        {/* Only hide the Leave icon for the absolute Board Owner */}
+        {!isOwner && (
           <button 
             onClick={onLeave}
             title="Leave Workspace"
@@ -82,8 +83,21 @@ const BoardNavbar = ({
         )}
 
         {/* Profile Avatar */}
-        <button onClick={() => navigate('/profile')} className="w-8 h-8 rounded-full bg-indigo-600 border border-white dark:border-zinc-800 flex items-center justify-center text-[10px] font-black text-white hover:ring-4 hover:ring-indigo-500/20 transition-all">
-          {currentUser?.name?.charAt(0).toUpperCase() || 'U'}
+        <button 
+          onClick={() => navigate('/profile')} 
+          className="w-8 h-8 rounded-full bg-indigo-600 border border-white dark:border-zinc-800 flex items-center justify-center overflow-hidden hover:ring-4 hover:ring-indigo-500/20 transition-all shadow-sm"
+        >
+          {currentUser?.profilePicture ? (
+            <img 
+              src={currentUser.profilePicture} 
+              alt="Profile" 
+              className="w-full h-full object-cover" 
+            />
+          ) : (
+            <span className="text-[10px] font-black text-white uppercase">
+              {currentUser?.name?.charAt(0).toUpperCase() || 'U'}
+            </span>
+          )}
         </button>
       </div>
     </nav>

@@ -13,7 +13,7 @@ const boardSchema = mongoose.Schema(
     members: [
       {
         user: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
-        // ✅ Added 'member' and 'admin' to fix the validation error
+        // Added 'member' and 'admin' to fix the validation error
         role: { 
             type: String, 
             enum: ['viewer', 'editor', 'member', 'admin'], 

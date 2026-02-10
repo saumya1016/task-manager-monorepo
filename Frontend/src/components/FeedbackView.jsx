@@ -29,8 +29,8 @@ const FeedbackView = () => {
         serviceId, 
         templateId, 
         {
-          // ✅ FIX: Manually provide your email here.
-          // Your dashboard expects {{to_email}}, so you must send this key.
+          // Manually provide  email here.
+          //  dashboard expects {{to_email}}, so you must send this key.
           to_email: 'your-personal-email@gmail.com', 
           
           from_name: user?.name || 'Anonymous User',
@@ -48,16 +48,16 @@ const FeedbackView = () => {
         colors: ['#6366f1', '#a855f7', '#fbbf24']
       });
 
-      // ✅ Show success state
+      // Show success state
       setIsSubmitted(true);
       toast.success("Feedback delivered!");
 
-      // ✅ RESET States immediately so the form is empty when it reappears
+      // RESET States immediately so the form is empty when it reappears
       setRating(0);
       setReviewText('');
       setHoveredRating(0);
 
-      // ✅ Hide the success overlay after 3 seconds to "refresh" the form
+      //Hide the success overlay after 3 seconds to "refresh" the form
       setTimeout(() => {
         setIsSubmitted(false);
       }, 3000);

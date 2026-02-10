@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { 
   ArrowLeft, ShieldCheck, UserMinus, Mail, 
@@ -8,8 +8,6 @@ import axios from '../utils/axios';
 import { toast } from 'sonner';
 import { io } from 'socket.io-client';
 
-const socket = io('http://localhost:5000');
-
 const WorkspaceManagePage = () => {
     const { id } = useParams();
     const navigate = useNavigate();
@@ -17,6 +15,9 @@ const WorkspaceManagePage = () => {
     const [loading, setLoading] = useState(true);
     const [revokingId, setRevokingId] = useState(null);
     const [onlineUsers, setOnlineUsers] = useState([]);
+    
+    // Use a ref to prevent multiple connection attempts
+    const socketRef = useRef(null);
 
     const user = JSON.parse(sessionStorage.getItem('userInfo') || localStorage.getItem('userInfo'));
 
@@ -37,13 +38,21 @@ const WorkspaceManagePage = () => {
 
     useEffect(() => {
         if (board && user) {
-            socket.emit('join-presence', { boardId: id, userId: user.id || user._id });
-            socket.on('online-users-update', (users) => {
+            socketRef.current = io(import.meta.env.VITE_API_URL , {
+                transports: ['websocket'],
+                upgrade: false
+            });
+
+            socketRef.current.emit('join-presence', { boardId: id, userId: user.id || user._id });
+            
+            socketRef.current.on('online-users-update', (users) => {
                 setOnlineUsers(users);
             });
         }
         return () => {
-            socket.off('online-users-update');
+            if (socketRef.current) {
+                socketRef.current.disconnect();
+            }
         };
     }, [board, id, user]);
 
@@ -62,8 +71,9 @@ const WorkspaceManagePage = () => {
         }
     };
 
+    
     const copyInviteLink = () => {
-        const link = `${window.location.origin}/join/${id}`;
+        const link = `${window.location.origin}/join/${id}?session_isolate=true`;
         navigator.clipboard.writeText(link);
         toast.success("Invite Link Copied");
     };
@@ -127,7 +137,6 @@ const WorkspaceManagePage = () => {
                                     <tr className="group transition-colors">
                                         <td className="px-8 py-6">
                                             <div className="flex items-center gap-4">
-                                                {/* ✅ ADMIN AVATAR WITH S3 IMG + PRESENCE */}
                                                 <div className="relative">
                                                   <div className={`w-12 h-12 rounded-2xl bg-indigo-600 text-white flex items-center justify-center font-black shadow-lg shadow-indigo-200 uppercase transition-all duration-500 overflow-hidden ${onlineUsers.includes(board.owner._id) ? 'ring-2 ring-emerald-500 ring-offset-2' : ''}`}>
                                                       {board.owner.profilePicture ? (
@@ -160,7 +169,6 @@ const WorkspaceManagePage = () => {
                                         <tr key={m.user._id} className="group hover:bg-zinc-50/30 transition-all duration-300">
                                             <td className="px-8 py-6">
                                                 <div className="flex items-center gap-4">
-                                                    {/* ✅ MEMBER AVATAR WITH S3 IMG + PRESENCE */}
                                                     <div className="relative">
                                                       <div className={`w-12 h-12 rounded-2xl flex items-center justify-center font-black uppercase shadow-inner border transition-all duration-500 overflow-hidden ${onlineUsers.includes(m.user._id) ? 'bg-white text-indigo-600 border-emerald-500 scale-105 shadow-emerald-100' : 'bg-zinc-100 text-zinc-400 border-zinc-200/50'}`}>
                                                           {m.user.profilePicture ? (
@@ -223,7 +231,7 @@ const WorkspaceManagePage = () => {
                             
                             <div className="flex flex-col md:flex-row gap-4 items-center bg-white border border-zinc-200 p-3 rounded-[2rem] shadow-inner group/invite">
                                 <div className="flex-1 px-4 py-2 text-[11px] font-black text-zinc-400 tracking-widest truncate italic">
-                                    {window.location.origin}/join/{id}
+                                    {window.location.origin}/join/{id}?session_isolate=true
                                 </div>
                                 <button 
                                     onClick={copyInviteLink}
