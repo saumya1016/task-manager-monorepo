@@ -58,15 +58,19 @@ const TaskCard = ({ task, index, onClickEdit, onClickDelete, isDragDisabled, isD
             ${isDone ? 'opacity-60 bg-gray-50/50 dark:bg-zinc-900/50' : ''}
           `}
         >
-          {/*Action Buttons - Hidden for Viewers */}
+          {/*Action Buttons - Restricted by Permission */}
           {!isViewer && (
             <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity bg-white/90 dark:bg-zinc-900/90 p-1 rounded backdrop-blur-sm border border-gray-200 dark:border-zinc-800 z-10">
               <button onClick={() => onClickEdit(task)} className="p-1 hover:bg-gray-100 dark:hover:bg-zinc-800 rounded text-gray-400 hover:text-indigo-600 dark:text-zinc-400 dark:hover:text-white">
                 <Pencil size={13} />
               </button>
-              <button onClick={() => onClickDelete(task.id)} className="p-1 hover:bg-red-50 dark:hover:bg-red-500/20 rounded text-gray-400 hover:text-red-500 dark:text-zinc-400 dark:hover:text-red-400">
-                <Trash2 size={13} />
-              </button>
+              
+              {/* Only render delete button if onClickDelete is provided */}
+              {onClickDelete && (
+                <button onClick={() => onClickDelete(task.id)} className="p-1 hover:bg-red-50 dark:hover:bg-red-500/20 rounded text-gray-400 hover:text-red-500 dark:text-zinc-400 dark:hover:text-red-400">
+                  <Trash2 size={13} />
+                </button>
+              )}
             </div>
           )}
           
@@ -106,8 +110,8 @@ const TaskCard = ({ task, index, onClickEdit, onClickDelete, isDragDisabled, isD
               {task.deadline && (
                 <div className={`flex items-center gap-1 text-[10px] font-semibold 
                   ${isDone 
-                     ? 'text-gray-300 dark:text-zinc-600 line-through decoration-gray-300' 
-                     : (isOverdue(task.deadline) ? 'text-red-500 dark:text-red-400' : 'text-gray-400 dark:text-zinc-500')
+                      ? 'text-gray-300 dark:text-zinc-600 line-through decoration-gray-300' 
+                      : (isOverdue(task.deadline) ? 'text-red-500 dark:text-red-400' : 'text-gray-400 dark:text-zinc-500')
                   }
                 `}>
                    <Calendar size={12} />
@@ -117,10 +121,10 @@ const TaskCard = ({ task, index, onClickEdit, onClickDelete, isDragDisabled, isD
             </div>
             
             <div className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold border
-               ${isDone 
-                 ? 'bg-gray-100 text-gray-400 border-gray-200 dark:bg-zinc-800 dark:text-zinc-600 dark:border-zinc-700' 
-                 : 'bg-indigo-50 dark:bg-indigo-500/10 border-indigo-100 dark:border-indigo-500/20 text-indigo-600 dark:text-indigo-400'
-               }
+                ${isDone 
+                   ? 'bg-gray-100 text-gray-400 border-gray-200 dark:bg-zinc-800 dark:text-zinc-600 dark:border-zinc-700' 
+                   : 'bg-indigo-50 dark:bg-indigo-500/10 border-indigo-100 dark:border-indigo-500/20 text-indigo-600 dark:text-indigo-400'
+                }
             `}>
                {task.assignee ? task.assignee.charAt(0).toUpperCase() : 'U'}
             </div>

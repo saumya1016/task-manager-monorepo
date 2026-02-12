@@ -17,9 +17,18 @@ export const StrictModeDroppable = ({ children, ...props }) => {
   return <Droppable {...props}>{children}</Droppable>;
 };
 
-const BoardColumn = ({ column, tasks, searchQuery, priorityFilter, isViewer, onEdit, onDelete }) => {
+const BoardColumn = ({ column, tasks, searchQuery, priorityFilter, userRole, onEdit, onDelete }) => {
   
-  // 1. Handle filtering logic inside the column component
+  // Define Permission Flags based on the hierarchy
+  const isOwner = userRole === 'owner';
+  const isAdmin = userRole === 'admin';
+  const isMember = userRole === 'member';
+  const isViewer = userRole === 'viewer';
+
+  // Logic: Owner/Admin/Member can move/edit. ONLY Owner/Admin can delete.
+  const canModify = isOwner || isAdmin || isMember;
+  const canDelete = isOwner || isAdmin;
+
   const visibleTasks = column.taskIds.map((taskId) => tasks[taskId]).filter(task => {
     if (!task) return false;
     const matchesSearch = task.content.toLowerCase().includes(searchQuery.toLowerCase());
@@ -39,7 +48,7 @@ const BoardColumn = ({ column, tasks, searchQuery, priorityFilter, isViewer, onE
       </div>
 
       {/* Droppable Area */}
-      <StrictModeDroppable droppableId={column.id} isDropDisabled={isViewer}>
+      <StrictModeDroppable droppableId={column.id} isDropDisabled={!canModify}>
         {(provided, snapshot) => (
           <div
             {...provided.droppableProps}
@@ -56,10 +65,10 @@ const BoardColumn = ({ column, tasks, searchQuery, priorityFilter, isViewer, onE
                 task={task} 
                 index={index} 
                 onClickEdit={onEdit} 
-                onClickDelete={(id) => onDelete({ taskId: id, columnId: column.id })} 
-                isDragDisabled={isViewer} 
+                onClickDelete={canDelete ? (id) => onDelete({ taskId: id, columnId: column.id }) : null} 
+                isDragDisabled={!canModify} 
                 isViewer={isViewer} 
-                readOnly={isViewer} 
+                readOnly={!canModify} 
                 isDone={column.id === 'col-4'} 
               />
             ))}
