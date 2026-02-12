@@ -71,17 +71,18 @@ exports.getBoardTasks = async (req, res) => {
 // @route   POST /api/tasks
 exports.createTask = async (req, res) => {
     try {
-        const { content, boardId, status } = req.body;
-        if (!boardId) return res.status(400).json({ message: "Board ID required" });
-
+        const { boardId, status } = req.body;
         const board = await Board.findById(boardId);
         if (!board) return res.status(404).json({ message: "Board not found" });
 
-        // 🔒 RBAC Check
         const isOwner = board.owner.toString() === req.user.id;
         const member = board.members.find(m => m.user.toString() === req.user.id);
-        if (!isOwner && member?.role === 'viewer') {
-            return res.status(403).json({ message: "Viewers cannot create tasks" });
+        
+        // Check: Must be Owner OR have 'admin' role
+        const hasPower = isOwner || member?.role === 'admin';
+
+        if (!hasPower) {
+            return res.status(403).json({ message: "Only Owners and Admins can create tasks" });
         }
 
         const taskCount = await Task.countDocuments({ board: boardId, status: status || 'col-1' });
@@ -129,12 +130,17 @@ exports.deleteTask = async (req, res) => {
         if (!task) return res.status(404).json({ message: 'Task not found' });
 
         const board = await Board.findById(task.board);
-
-        // 🔒 RBAC Check
+        
+        // 1. Check if user is the absolute Owner
         const isOwner = board.owner.toString() === req.user.id;
+
+        // 2. Check if user is an invited Member with the 'admin' role
         const member = board.members.find(m => m.user.toString() === req.user.id);
-        if (!isOwner && member?.role === 'viewer') {
-            return res.status(403).json({ message: "Viewers cannot delete tasks" });
+        const isAdmin = member?.role === 'admin';
+
+        // 🔒 Only Owner or Admin can delete
+        if (!isOwner && !isAdmin) {
+            return res.status(403).json({ message: "Only the Owner and Admins can delete tasks" });
         }
 
         await task.deleteOne();
